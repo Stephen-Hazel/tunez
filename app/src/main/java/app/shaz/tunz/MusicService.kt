@@ -763,7 +763,9 @@ class MusicService: Service ()
             {  Dbg.log ("TunzSkip", "onRewind") }
 
             override fun onSetRating (rating: RatingCompat)
-            {  setRating (rating.isThumbUp) }
+            {  Dbg.log ("TunzRate", "onSetRating rating=$rating " +
+                        "isThumbUp=${rating.isThumbUp}")
+               setRating (rating.isThumbUp) }
 
             override fun onCustomAction (action: String, extras: Bundle?)
             {  Dbg.log ("TunzSkip", "onCustomAction action=$action " +
@@ -1167,7 +1169,10 @@ class MusicService: Service ()
 
    fun setRating (up: Boolean)
    // thumbs up promotes b/bAn/bSt -> a/aAn/aSt, thumbs down demotes back
-   {  if (song.isEmpty ())  return
+   {  if (song.isEmpty ()) {
+         Dbg.log ("TunzRate", "setRating: no song playing, ignored")
+         return
+      }
      val cur = splitfn (song).dir
      val bucket =
         if (up) when (cur) {
@@ -1183,10 +1188,13 @@ class MusicService: Service ()
            else  -> null
         }
       if (bucket == null) {
-         Log.w ("TunzRate", "setRating: no mapping for up=$up cur=$cur")
+         Dbg.log ("TunzRate", "setRating: no mapping for up=$up cur=$cur " +
+                  "song=$song")
          return
       }
-      rateSong (bucket)
+     val result = rateSong (bucket)
+      Dbg.log ("TunzRate", "setRating: up=$up cur=$cur bucket=$bucket " +
+               "result=$result")
    }
 
 
