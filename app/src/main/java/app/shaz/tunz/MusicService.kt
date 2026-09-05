@@ -763,7 +763,7 @@ class MusicService: Service ()
             {  Dbg.log ("TunzSkip", "onRewind") }
 
             override fun onSetRating (rating: RatingCompat)
-            {  setRating (rating.percentRating) }
+            {  setRating (rating.isThumbUp) }
 
             override fun onCustomAction (action: String, extras: Bundle?)
             {  Dbg.log ("TunzSkip", "onCustomAction action=$action " +
@@ -790,7 +790,7 @@ class MusicService: Service ()
             {  Dbg.log ("TunzSkip", "onCommand command=$command " +
                         "args=$args") }
          })
-         setRatingType (RatingCompat.RATING_PERCENTAGE)
+         setRatingType (RatingCompat.RATING_THUMB_UP_DOWN)
          isActive = true
       }
 
@@ -1165,16 +1165,25 @@ class MusicService: Service ()
    }
 
 
-   fun setRating (percent: Float)
-   // map voice/Assistant rating value (1-6) onto the rating buckets
-   {  val bucket = when (percent.toInt ()) {
-         1 -> "a";    2 -> "b"
-         3 -> "aAn";  4 -> "bAn"
-         5 -> "aSt";  6 -> "bSt"
-         else -> null
-      }
+   fun setRating (up: Boolean)
+   // thumbs up promotes b/bAn/bSt -> a/aAn/aSt, thumbs down demotes back
+   {  if (song.isEmpty ())  return
+     val cur = splitfn (song).dir
+     val bucket =
+        if (up) when (cur) {
+           "b"   -> "a"
+           "bAn" -> "aAn"
+           "bSt" -> "aSt"
+           else  -> null
+        }
+        else when (cur) {
+           "a"   -> "b"
+           "aAn" -> "bAn"
+           "aSt" -> "bSt"
+           else  -> null
+        }
       if (bucket == null) {
-         Log.w ("TunzRate", "setRating: unmapped percent=$percent")
+         Log.w ("TunzRate", "setRating: no mapping for up=$up cur=$cur")
          return
       }
       rateSong (bucket)
