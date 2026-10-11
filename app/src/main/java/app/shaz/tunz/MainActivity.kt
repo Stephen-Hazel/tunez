@@ -10,6 +10,8 @@ import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.LayerDrawable
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -56,11 +58,26 @@ fun substr (s: String, b: Int, l: Int): String
 }
 
 
+fun rawRating (fn: String): String
+// whatever's after the last - (sans .mp3), rating or not
+{  return fn.removeSuffix (".mp3").substringAfterLast ("-").trim ()
+}
+
+
+fun isRated (fn: String): Boolean
+{  return RATINGS.contains (rawRating (fn))
+}
+
+
 fun splitfn (fn: String): FNTitle
+// unrated files keep their last segment as title n go in UNRATED bucket
 { var s = fn
    s = substr (s, 0, s.length-4)
-  val d = s.substringAfterLast ("-").trim ()
-   s =    s.substringBeforeLast ("-")
+  var d = UNRATED
+   if (isRated (fn)) {
+      d = s.substringAfterLast ("-").trim ()
+      s = s.substringBeforeLast ("-")
+   }
    s = s.replace ("_", " ")
   val f = s.indexOf     ("-")
   val l = s.lastIndexOf ("-")
@@ -98,7 +115,9 @@ fun fmtfn (fn: String): SpannableString
 
 fun renameRating (fn: String, rating: String): String
 // swap the rating suffix on a filename, keeping everything before it
+// (unrated files just get the rating tacked on the end)
 {  val base = fn.removeSuffix (".mp3")
+   if (! isRated (fn))  return "${base.trimEnd ()} - $rating.mp3"
   val idx  = base.lastIndexOf ("-")
    if (idx == -1)  return fn
   val prefix = base.substring (0, idx).trimEnd ()
@@ -106,13 +125,17 @@ fun renameRating (fn: String, rating: String): String
 }
 
 
-val RATINGS = listOf ("a", "b", "aAn", "bAn", "aSt", "bSt", "sing")
+val RATINGS = listOf ("a", "b", "aAn", "bAn", "aSt", "bSt", "new", "sing")
+const val UNRATED = "new"
 
 
 fun aSplit (vals: List<String>): Pair<List<String>, List<String>>
-// row1 gets the a* values, row2 gets the rest, both alphabetical
-{  val row1 = vals.filter {   it.startsWith ("a") }.sorted ()
-  val row2 = vals.filter { ! it.startsWith ("a") }.sorted ()
+// row1 gets the a* values then sing, row2 the rest then new
+{  val row1 = vals.filter {   it.startsWith ("a") }.sorted () +
+              vals.filter { it == "sing" }
+  val row2 = vals.filter { ! it.startsWith ("a") &&
+                           it != "sing" && it != UNRATED }.sorted () +
+              vals.filter { it == UNRATED }
    return Pair (row1, row2)
 }
 
@@ -149,13 +172,14 @@ class MainActivity: AppCompatActivity (), PlaybackCallback
            val tr = TableRow (this)
            val tv = TextView (this)
             tv.text = fmtfn (fn)
+            tv.setPadding (dp (8), dp (6), dp (8), dp (6))
             tr.addView (tv)
             tr.isClickable = true
             tr.isFocusable = true
             tr.isFocusableInTouchMode = true
             if (id == ppos) {
                tr.requestFocus ()
-               tr.setBackgroundColor (0xFF7986CB.toInt ())
+               hilite (tr, true)
                selRow = tr
             }
             tr.id = id++
@@ -165,6 +189,43 @@ class MainActivity: AppCompatActivity (), PlaybackCallback
             b.loTbl.addView (tr)
          }
       }
+   }
+
+
+   private fun dp (n: Int): Int
+   {  return (n * resources.displayMetrics.density).toInt ()
+   }
+
+
+   private fun hilite (tr: TableRow, on: Boolean)
+   // rounded theme container bg w a colorPrimary stripe down the left
+   {  val tv = tr.getChildAt (0) as? TextView
+      if (! on) {
+         tr.background = null
+         tv?.setTextColor (MaterialColors.getColor (
+            tr, android.R.attr.textColorPrimary, Color.BLACK))
+         return
+      }
+     val acc = MaterialColors.getColor (
+        tr, com.google.android.material.R.attr.colorPrimary,
+        0xFF3F51B5.toInt ())
+     val bg  = MaterialColors.getColor (
+        tr, com.google.android.material.R.attr.colorPrimaryContainer,
+        0xFFC5CAE9.toInt ())
+     val fg  = MaterialColors.getColor (
+        tr, com.google.android.material.R.attr.colorOnPrimaryContainer,
+        Color.BLACK)
+     val rad = dp (8).toFloat ()
+     val bar = GradientDrawable ()
+      bar.cornerRadius = rad
+      bar.setColor (acc)
+     val box = GradientDrawable ()
+      box.cornerRadius = rad
+      box.setColor (bg)
+     val ld  = LayerDrawable (arrayOf (bar, box))
+      ld.setLayerInset (1, dp (4), 0, 0, 0)
+      tr.background = ld
+      tv?.setTextColor (fg)
    }
 
 
@@ -189,12 +250,13 @@ class MainActivity: AppCompatActivity (), PlaybackCallback
                b.loTbl.getChildAt (i).id = i
          }
          else {
-            selRow?.setBackgroundColor (Color.TRANSPARENT)
+            selRow?.let { hilite (it, false) }
          }
-        val tr = b.loTbl.getChildAt (newPpos) ?: return@runOnUiThread
-         tr.setBackgroundColor (0xFF7986CB.toInt ())
+        val tr = b.loTbl.getChildAt (newPpos) as? TableRow
+                                                     ?: return@runOnUiThread
+         hilite (tr, true)
          tr.requestFocus ()
-         selRow = tr as? TableRow
+         selRow = tr
          rateDialog?.dismiss ()
       }
    }

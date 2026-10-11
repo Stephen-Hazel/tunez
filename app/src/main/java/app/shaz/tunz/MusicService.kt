@@ -692,7 +692,7 @@ class MusicService: Service ()
      val fns = mus.filter { it.isFile && it.getName ().endsWith (".mp3") }
                   .map { f ->
                     val old  = f.getName ()
-                    val newR = ratingMigration [splitfn (old).dir]
+                    val newR = ratingMigration [rawRating (old)]
                      if (newR == null)  old
                      else {
                        val newName = renameRating (old, newR)

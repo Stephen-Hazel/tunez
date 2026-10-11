@@ -30,10 +30,11 @@ This is a **single-Activity, single-file app**. Nearly all logic lives in `app/s
 **Music files on device** (`/Music/tunz/`): all mp3s sit flat directly in
 this one directory — no subdirectories. Each file's rating tag is
 suffixed on the filename instead of being a folder name, so re-rating a
-song is just a rename. Known rating values in use: `An` (Annie's
-songs), `St` (Steve's songs), `_a` (shared, replayable), `_b` (shared,
-once only), `sing` (sing-along list) — but this set isn't fixed in
-code; any new suffix works without a code change.
+song is just a rename. Valid ratings are the `RATINGS` list in
+`MainActivity.kt` (`a`, `b`, `aAn`, `bAn`, `aSt`, `bSt`, `new`, `sing`). A file
+whose last segment isn't in `RATINGS` (or has no rating at all) goes in
+the `new` bucket (`UNRATED`, itself also a valid rating); a new rating
+needs adding to `RATINGS`.
 
 **Filename format** (required): `group - year album song# - title - rating.mp3`
 
