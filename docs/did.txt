@@ -1,3 +1,7 @@
+2026Nov
+   settin up for play store and 
+	general people usin it - not just Annie n me (primarily for Davin:)
+
 2026Jul
    dropped dirs under music/tunz - flat now, rating suffix on
    filename instead so re-rating a song is just a rename
