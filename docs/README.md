@@ -6,7 +6,11 @@ Music/tunez dir should be your main dir of songs (mp3,flac,ogg,wav).
 It can have subdirs under it.
 
 song filename format is
+
+```
 artist`etc`songtitle`rating.mp3
+```
+
    where etc can be something like year_album_trackNumber_whatever
 	and your subfolder name will be tacked onto etc
 	rating can be any string but will default to new (to re-rate later)
@@ -35,11 +39,14 @@ Shuf will order em randomly MINUS the songs you already heard
 
 play/pause is in bottom right
 
-make sure to name your songs as:  
+make sure to name your songs as:
+
+```
 artist ` year album track# ` songtitle ` rating.mp3
+```
 
 - the middle part is optional
-- no ` chars means no artist and everything is the song title
+- no `` ` `` chars means no artist and everything is the song title
 
 good luck
 
