@@ -1,9 +1,10 @@
 package app.shaz.tunez
 // cuz casting needs a http connection sigh
 
+import android.os.ParcelFileDescriptor
 import android.util.Log
 import java.io.BufferedReader
-import java.io.File
+import java.io.FileInputStream
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
@@ -13,7 +14,7 @@ import java.net.Socket
 import java.net.URLDecoder
 import java.util.concurrent.CopyOnWriteArraySet
 
-class LocalHttpServer (private val basePath: String) {
+class LocalHttpServer (private val store: SongStore) {
    private var serverSocket: ServerSocket? = null
    private var running = false
    private val clients = CopyOnWriteArraySet<Socket> ()
@@ -60,6 +61,7 @@ class LocalHttpServer (private val basePath: String) {
 
    private fun handle (sock: Socket)
    { var uri: String? = null
+     var pfd: ParcelFileDescriptor? = null
       try {
         val br    = BufferedReader (InputStreamReader (sock.getInputStream ()))
         val lines = mutableListOf<String> ()
@@ -72,19 +74,17 @@ class LocalHttpServer (private val basePath: String) {
          uri = URLDecoder.decode (rawPath.trimStart ('/'), "UTF-8")
          Log.d ("HTTP", "request $uri")
          Dbg.log ("HTTP", "request $uri")
-        val file    = File ("$basePath/$uri")
         val out     = sock.getOutputStream ()
-      // songs can sit in subdirs now - but never serve outside basePath
-        val inBase  = file.canonicalPath.startsWith (
-                         File (basePath).canonicalPath + File.separator)
-         if (! inBase || ! file.exists () || ! file.isFile) {
-            Log.w ("HTTP", "404 $uri (looked in ${file.path})")
-            Dbg.log ("HTTP", "404 $uri (looked in ${file.path})")
+      // only ever songs out of our folder's index - nothin else to get at
+         pfd = if (isSong (uri))  store.openFd (uri)  else  null
+         if (pfd == null) {
+            Log.w ("HTTP", "404 $uri")
+            Dbg.log ("HTTP", "404 $uri")
             out.write ("HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n"
                           .toByteArray ())
             return
          }
-        val fileLen  = file.length ()
+        val fileLen  = pfd.statSize
         val rangeHdr = lines.firstOrNull {
                           it.startsWith ("Range:", ignoreCase = true) }
                        ?.substringAfter (":")?.trim ()
@@ -97,19 +97,21 @@ class LocalHttpServer (private val basePath: String) {
                           ?: (fileLen - 1)
             wanted = end - start + 1
             out.write (("HTTP/1.1 206 Partial Content\r\n" +
-               "Content-Type:   ${songMime (file.name)}\r\n" +
+               "Content-Type:   ${songMime (uri)}\r\n" +
                "Content-Length: $wanted\r\n" +
                "Content-Range:  bytes $start-$end/$fileLen\r\n" +
                "Accept-Ranges:  bytes\r\n\r\n").toByteArray ())
-            sent = file.inputStream ().use { stream (it, out, start, wanted) }
+            sent = FileInputStream (pfd.fileDescriptor).use {
+                      stream (it, out, start, wanted) }
          }
          else {
             wanted = fileLen
             out.write (("HTTP/1.1 200 OK\r\n" +
-               "Content-Type:   ${songMime (file.name)}\r\n" +
+               "Content-Type:   ${songMime (uri)}\r\n" +
                "Content-Length: $fileLen\r\n" +
                "Accept-Ranges:  bytes\r\n\r\n").toByteArray ())
-            sent = file.inputStream ().use { stream (it, out, 0L, wanted) }
+            sent = FileInputStream (pfd.fileDescriptor).use {
+                      stream (it, out, 0L, wanted) }
          }
          out.flush ()
          if (sent == wanted) {
@@ -136,6 +138,7 @@ class LocalHttpServer (private val basePath: String) {
          Dbg.log ("HTTP", "handle $uri: $e")
       }
       finally {
+         try { pfd?.close () } catch (e: Exception) { }
          clients.remove (sock)
          try { sock.close () } catch (e: Exception) { }
       }

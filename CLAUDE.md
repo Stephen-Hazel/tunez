@@ -27,6 +27,15 @@ SHazTunez (tunez) is a personal Android music player for two users (Annie and St
 
 This is a **single-Activity, single-file app**. Nearly all logic lives in `app/src/main/java/app/shaz/tunez/MainActivity.kt`. There are no fragments, ViewModels, repositories, or services — everything is inline.
 
+**Folder access:** no storage permissions - the app uses the Storage
+Access Framework. On first run (or if access is lost) `MainActivity`
+opens the folder picker at `Music/tunez`; the grant is persisted and its
+tree uri kept in prefs (`tree`). `SongStore.kt` wraps it: `scan ()` (one
+`DocumentsContract` query per dir) builds a relative path -> document uri
+map, plus `rename`/`delete`/`openFd`/`readText`/`writeText`. Playback,
+album art, the cast http server, renames n deletes all go thru it.
+`done.txt`, `skip.txt` and `tunez_debug.log` live in `Music/tunez` too.
+
 **Music files on device** (`/Music/tunez/`): songs (`.mp3`, `.wav`,
 `.flac`, `.ogg` - `SONG_EXTS`) sit in this directory or any (non-hidden)
 subdirectory of it; songs are tracked as paths relative to it

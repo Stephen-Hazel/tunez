@@ -23,7 +23,6 @@ import android.media.MediaPlayer
 import android.os.Binder
 import android.os.Build
 import android.os.Bundle
-import android.os.Environment
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
@@ -54,7 +53,6 @@ import com.google.android.gms.cast.framework.CastSession
 import com.google.android.gms.cast.framework.SessionManagerListener
 import com.google.android.gms.cast.framework.media.RemoteMediaClient
 import com.google.android.gms.common.api.PendingResult
-import java.io.File
 import java.net.Inet4Address
 import java.net.NetworkInterface
 import java.text.SimpleDateFormat
@@ -82,29 +80,26 @@ object Dbg
 // permanent on-device log for chasing intermittent bugs (bt/assistant
 // skip weirdness etc) - a plain file survives days between adb
 // sessions, unlike the logcat ring buffer
-{  private var file: File? = null
+{  private var store: SongStore? = null
    private val fmt = SimpleDateFormat ("MM-dd HH:mm:ss", Locale.US)
-   private const val MAX_BYTES  = 1_000_000L
+   private const val LOG        = "tunez_debug.log"
+   private const val MAX_BYTES  = 1_000_000
    private const val KEEP_BYTES = 500_000
 
-   fun init (dir: String)
-   {  val f = File ("$dir/tunez_debug.log")
-      try {
-         if (f.exists () && f.length () > MAX_BYTES)
-            f.writeText (f.readText ().takeLast (KEEP_BYTES))
-      }
-      catch (e: Exception) { }
-      file = f
+   fun init (s: SongStore)
+   // it lives in our Music/tunez folder
+   {  val t = s.readText (LOG)
+      if (t != null && t.length > MAX_BYTES)
+         s.writeText (LOG, t.takeLast (KEEP_BYTES))
+      store = s
    }
 
    fun log (tag: String, msg: String)
    {  Log.d (tag, msg)
-     val f = file ?: return
+     val s = store ?: return
       synchronized (this) {
-         try {
-            f.appendText ("${fmt.format (Date ())} $tag: $msg\n")
-         }
-         catch (e: Exception) { }
+         s.writeText (LOG, "${fmt.format (Date ())} $tag: $msg\n",
+                      append = true)
       }
    }
 
@@ -141,7 +136,7 @@ class MusicService: Service ()
    private var mplay: MediaPlayer? = null
    var mp3 = mutableListOf<FNList> ()     // all our songs (wav,flac,ogg too)
        private set
-   var path = ""
+   var store: SongStore? = null     // our picked Music/tunez folder
        private set
    var shuf:  Boolean = true
        private set
@@ -555,10 +550,10 @@ class MusicService: Service ()
          reconnectAttempts = 0
          reconnectHandler.removeCallbacksAndMessages (null)
          lastCastDeviceId = session.castDevice?.deviceId
-         httpServer  = LocalHttpServer (path).also {
+         httpServer  = store?.let { s -> LocalHttpServer (s).also {
             it.start ()
             it.onStreamError = { uri -> handleHttpStreamError (uri) }
-         }
+         } }
          acquireWifiLock ()
          mplay?.pause ()
          if (song.isNotEmpty ())  loadCastQueue ()
@@ -579,10 +574,10 @@ class MusicService: Service ()
          reconnectHandler.removeCallbacksAndMessages (null)
          lastCastDeviceId = session.castDevice?.deviceId
          if (httpServer == null)
-            httpServer = LocalHttpServer (path).also {
+            httpServer = store?.let { s -> LocalHttpServer (s).also {
                it.start ()
                it.onStreamError = { uri -> handleHttpStreamError (uri) }
-            }
+            } }
          acquireWifiLock ()
          if (song.isNotEmpty ())  loadCastQueue ()
          regCastCb ()
@@ -609,7 +604,7 @@ class MusicService: Service ()
             if (song.isNotEmpty ()) {
                mplay?.reset ()
                try {
-                  mplay?.setDataSource ("$path/$song")
+                  mplay?.setDataSource (this@MusicService, songUri ())
                   mplay?.prepare ()
                   mplay?.start ()
                   mplay?.setOnCompletionListener { localErrorStreak = 0; next () }
@@ -699,11 +694,15 @@ class MusicService: Service ()
             .build ())
 
       mplay = newMediaPlayer ()
-   // all our mp3 files sit flat in /Music/tunez, rating suffix in filename
-      path = Environment.getExternalStorageDirectory ().toString () +
-                                                                  "/Music/tunez"
-      Dbg.init (File (path).parent !!)
+   // our songs live in the Music/tunez folder the user picked for us (no
+   // folder yet?  then no songs til MainActivity gets one n restarts us)
+      store = SongStore.saved (this)
+     val t0  = SystemClock.elapsedRealtime ()
+     val all = store?.scan () ?: emptyList ()
+      store?.let { Dbg.init (it) }
       Dbg.installCrashLogger ()
+      Dbg.log ("TunezStore", "scanned ${all.size} files in " +
+               "${SystemClock.elapsedRealtime () - t0}ms")
       Dbg.log ("TunezSkip", "onCreate: service created")
    // load shuf,picked dirs from last time
      val p = getSharedPreferences ("prf", MODE_PRIVATE)
@@ -711,19 +710,11 @@ class MusicService: Service ()
       pick = p.getStringSet ("pick", emptySet ())?.toMutableList () ?:
                                                                 mutableListOf ()
    // and our done list so we don't hear ANY repeats
-      done = try {
-         File ("${File(path).parent}/done.txt").readLines ().toMutableList ()
-      }
-      catch (e: Exception) { mutableListOf () }
-   // ok, list off every mp3 (subdirs too, as relative paths, skipping
-   // hidden dirs) n bucket by rating suffix
-     val root = File (path)
-     val fns  = root.walk ()
-                   .onEnter { it == root || ! it.name.startsWith (".") }
-                   .filter  { it.isFile && isSong (it.name) }
-                   .map     { it.relativeTo (root).path }
-                   .toList  ()          // all listed before any renames
-                   .map     { tickFile (it) }.sorted ()
+      done = store?.readText ("done.txt")?.lines ()
+                ?.filter { it.isNotEmpty () }?.toMutableList ()
+             ?: mutableListOf ()
+   // ok, our songs (subdirs too, as relative paths) n bucket by rating
+     val fns = all.filter { isSong (it) }.map { tickFile (it) }.sorted ()
       fns.groupBy { splitfn (it).dir }.toSortedMap ().forEach { (d, ls) ->
          mp3.add (FNList (d, ls.toMutableList ()))
       }
@@ -857,7 +848,7 @@ class MusicService: Service ()
             try {
                mplay?.release ()
                mplay = newMediaPlayer ()
-               mplay?.setDataSource ("$path/$song")
+               mplay?.setDataSource (this@MusicService, songUri ())
                mplay?.prepare ()
                mplay?.seekTo (posBefore)
                mplay?.start ()
@@ -975,13 +966,17 @@ class MusicService: Service ()
    }
 
 
+   private fun songUri (): Uri
+   // the playing song's document in our folder (EMPTY just fails to load)
+   {  return store?.uri (song) ?: Uri.EMPTY
+   }
+
+
    private fun loadAlbumArt ()
    // if our mp3 has an embedded bitmap show it
-   { val path = Environment.getExternalStorageDirectory ().toString () +
-                                                            "/Music/tunez/$song"
-     val mmr  = MediaMetadataRetriever ()
+   { val mmr  = MediaMetadataRetriever ()
       albumArt = try {
-         mmr.setDataSource (path)
+         mmr.setDataSource (this, songUri ())
         val bytes = mmr.embeddedPicture
          if (bytes != null)
                BitmapFactory.decodeByteArray (bytes, 0, bytes.size)
@@ -1061,7 +1056,7 @@ class MusicService: Service ()
       if (isCasting ())  loadCastQueue (start)
       else {
          try {
-            mplay?.setDataSource ("$path/$song")
+            mplay?.setDataSource (this@MusicService, songUri ())
             mplay?.prepare ()
             if (start)  mplay?.start ()
             mplay?.setOnCompletionListener { localErrorStreak = 0; next () }
@@ -1084,8 +1079,7 @@ class MusicService: Service ()
    // match).  if that can't happen we just keep the old name
    {  val tn = tickName (fn)
       if (tn == fn)  return fn
-      if (File (path, tn).exists () ||
-          ! File (path, fn).renameTo (File (path, tn))) {
+      if (store?.rename (fn, tn) != true) {
          Dbg.log ("TunezRate", "tick rename failed: $fn -> $tn")
          return fn
       }
@@ -1099,20 +1093,13 @@ class MusicService: Service ()
    private fun saveDone ()
    // mirrors 'done' to disk right away so a mid-rotation process kill
    // doesn't lose which songs we've already heard this cycle
-   {  try {
-         File ("${File(path).parent}/done.txt").writeText (
-                                                   done.joinToString ("\n"))
-      }
-      catch (e: Exception) { }
+   {  store?.writeText ("done.txt", done.joinToString ("\n"))
    }
 
 
    private fun logSkip (name: String)
    // append-only record of explicitly skipped songs, separate from done
-   {  try {
-         File ("${File(path).parent}/skip.txt").appendText ("$name\n")
-      }
-      catch (e: Exception) { }
+   {  store?.writeText ("skip.txt", "$name\n", append = true)
    }
 
 
@@ -1185,7 +1172,7 @@ class MusicService: Service ()
          if (isCasting ())  loadCastQueue ()
          else {
             try {
-               mplay?.setDataSource ("$path/$song")
+               mplay?.setDataSource (this@MusicService, songUri ())
                mplay?.prepare ()
                mplay?.start ()
                mplay?.setOnCompletionListener { localErrorStreak = 0; next () }
@@ -1245,11 +1232,12 @@ class MusicService: Service ()
      val oldRating = splitfn (oldFn).dir
      val newFn     = renameRating (oldFn, rating)
       if (newFn == oldFn)  return oldFn
-      if (File (path, newFn).exists ()) {
+     val s = store ?: return null
+      if (s.exists (newFn)) {
          Log.w ("TunezRate", "rate skip, exists: $newFn")
          return null
       }
-      if (! File (path, oldFn).renameTo (File (path, newFn))) {
+      if (! s.rename (oldFn, newFn)) {
          Log.w ("TunezRate", "rate rename failed: $oldFn -> $newFn")
          return null
       }
@@ -1272,8 +1260,7 @@ class MusicService: Service ()
    // NOT keep it playing, moves on immediately like next ()
    {  if (song.isEmpty ())  return false
      val oldFn = song
-      try { File (path, oldFn).delete () }
-      catch (e: Exception) { }
+      store?.delete (oldFn)
      val d = splitfn (oldFn).dir
       mp3.find { it.dir == d }?.fn?.remove (oldFn)
       reRate ()

@@ -13,13 +13,9 @@ import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.InsetDrawable
 import android.graphics.drawable.LayerDrawable
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.os.Environment
 import android.os.IBinder
-import android.os.PowerManager
-import android.provider.Settings
 import android.text.Spannable
 import android.text.SpannableString
 import android.text.style.StyleSpan
@@ -28,6 +24,7 @@ import android.view.ViewGroup
 import android.widget.CheckBox
 import android.widget.TableRow
 import android.widget.TextView
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -191,7 +188,6 @@ class MainActivity: AppCompatActivity (), PlaybackCallback
 {  private lateinit var b: ActivityMainBinding
    private var svc: MusicService? = null
    private var selRow: TableRow? = null
-   private var sentToPerms = false
    private var rateDialog: AlertDialog? = null
    private var startPlay = false     // fresh launch? then get playin
 
@@ -438,77 +434,36 @@ class MainActivity: AppCompatActivity (), PlaybackCallback
 
 
    private fun checkPerms ()
-   // holy god android (pretty glad i got ai now)
-   { val need = mutableListOf<String> ()
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-         if (ContextCompat.checkSelfPermission (this,
+   // just notifications now - songs come thru the folder we get picked
+   {  if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+          ContextCompat.checkSelfPermission (this,
                                          Manifest.permission.POST_NOTIFICATIONS)
-             != PackageManager.PERMISSION_GRANTED)
-            need.add (Manifest.permission.POST_NOTIFICATIONS)
-         if (ContextCompat.checkSelfPermission (this,
-                                           Manifest.permission.READ_MEDIA_AUDIO)
-             != PackageManager.PERMISSION_GRANTED)
-            need.add (Manifest.permission.READ_MEDIA_AUDIO)
-      }
-      else {
-         if (ContextCompat.checkSelfPermission (this,
-                                      Manifest.permission.READ_EXTERNAL_STORAGE)
-             != PackageManager.PERMISSION_GRANTED)
-            need.add (Manifest.permission.READ_EXTERNAL_STORAGE)
-         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q &&
-             ContextCompat.checkSelfPermission (this,
-                                     Manifest.permission.WRITE_EXTERNAL_STORAGE)
-             != PackageManager.PERMISSION_GRANTED)
-            need.add (Manifest.permission.WRITE_EXTERNAL_STORAGE)
-      }
-      if (need.isNotEmpty ())
-         ActivityCompat.requestPermissions (this, need.toTypedArray (), 1)
+          != PackageManager.PERMISSION_GRANTED)
+         ActivityCompat.requestPermissions (this,
+            arrayOf (Manifest.permission.POST_NOTIFICATIONS), 1)
+   // no Music/tunez folder yet (or we lost access to it)?  go pick it
+      if (SongStore.saved (this) == null)  pickTree.launch (SongStore.HINT)
+   }
 
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
-          ! Environment.isExternalStorageManager ()) {
-        val uri = Uri.parse ("package:$packageName")
-         sentToPerms = true
-         startActivity (Intent (
-            Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, uri))
-      }
 
-   // let android know it's ok to keep runnin us in the background so
-   // doze/app-standby don't kill playback when the screen locks
-     val pm = getSystemService (POWER_SERVICE) as PowerManager
-      if (! pm.isIgnoringBatteryOptimizations (packageName))
-         startActivity (Intent (
-            Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
-            Uri.parse ("package:$packageName")))
+   private val pickTree = registerForActivityResult (
+      ActivityResultContracts.OpenDocumentTree ()) { u ->
+   // got our folder - keep it for good n have the service rescan
+      if (u != null) {
+         SongStore.keep (this, u)
+         restartService ()
+      }
    }
 
 
    private fun restartService ()
-   {  sentToPerms = false
-      svc?.setCallback (null)
+   {  svc?.setCallback (null)
       svc = null
       unbindService (conn)
      val intent = Intent (this, MusicService::class.java)
       stopService   (intent)
       startService  (intent)
       bindService   (intent, conn, BIND_AUTO_CREATE)
-   }
-
-
-   override fun onResume ()
-   {  super.onResume ()
-      if (sentToPerms &&
-          (Build.VERSION.SDK_INT < Build.VERSION_CODES.R ||
-           Environment.isExternalStorageManager ()))
-         restartService ()
-   }
-
-
-   override fun onRequestPermissionsResult (
-      req: Int, perms: Array<out String>, results: IntArray)
-   {  super.onRequestPermissionsResult (req, perms, results)
-      if (req == 1 && results.any {
-               it == PackageManager.PERMISSION_GRANTED })
-         restartService ()
    }
 
 
