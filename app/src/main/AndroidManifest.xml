@@ -21,12 +21,12 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Tunz">
+        android:theme="@style/Theme.Tunez">
         <activity
             android:name=".MainActivity"
             android:configChanges="orientation|screenSize|screenLayout"
             android:exported="true"
-            android:theme="@style/Theme.Tunz">
+            android:theme="@style/Theme.Tunez">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -42,7 +42,7 @@
         </service>
         <meta-data
             android:name="com.google.android.gms.cast.framework.OPTIONS_PROVIDER_CLASS_NAME"
-            android:value="app.shaz.tunz.CastOptionsProvider" />
+            android:value="tunez.shaz.app.CastOptionsProvider" />
         <receiver
             android:name="androidx.media.session.MediaButtonReceiver"
             android:exported="true">

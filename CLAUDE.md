@@ -10,7 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This App Is
 
-Tunz is a personal Android music player for two users (Annie and Steve). It reads MP3s from a structured directory on the device, supports shuffle with skip-history tracking (so recently played songs aren't replayed), and lets users select which music directories are active.
+SHazTunez (tunez) is a personal Android music player for two users (Annie and Steve). It reads MP3s from a structured directory on the device, supports shuffle with skip-history tracking (so recently played songs aren't replayed), and lets users select which music directories are active.
 
 ## Build Commands
 
@@ -25,9 +25,9 @@ Tunz is a personal Android music player for two users (Annie and Steve). It read
 
 ## Architecture
 
-This is a **single-Activity, single-file app**. Nearly all logic lives in `app/src/main/java/app/shaz/tunz/MainActivity.kt`. There are no fragments, ViewModels, repositories, or services — everything is inline.
+This is a **single-Activity, single-file app**. Nearly all logic lives in `app/src/main/java/tunez/shaz/app/MainActivity.kt`. There are no fragments, ViewModels, repositories, or services — everything is inline.
 
-**Music files on device** (`/Music/tunz/`): all mp3s sit flat directly in
+**Music files on device** (`/Music/tunez/`): all mp3s sit flat directly in
 this one directory — no subdirectories. Each file's rating tag is
 suffixed on the filename instead of being a folder name, so re-rating a
 song is just a rename. Valid ratings are the `RATINGS` list in
@@ -48,7 +48,7 @@ needs adding to `RATINGS`.
 All state persists to `SharedPreferences` under the key `"prf"`.
 
 **Data flow:**
-1. `onCreate` → load prefs, scan `/Music/tunz/`, build playlist via `rePlay()`
+1. `onCreate` → load prefs, scan `/Music/tunez/`, build playlist via `rePlay()`
 2. `rePlay()` → filter by selected dirs, shuffle or sort, populate `TableLayout` with clickable rows
 3. Row click or song completion → `next()` → advances playback, updates `done`/`skip`, highlights current row
 4. `onDestroy` → save all state, release `MediaPlayer`

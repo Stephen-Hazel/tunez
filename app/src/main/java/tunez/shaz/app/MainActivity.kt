@@ -1,6 +1,6 @@
-// MainActivity.kt - tunz ui (most stuff happens in the service now)
+// MainActivity.kt - tunez ui (most stuff happens in the service now)
 
-package app.shaz.tunz
+package tunez.shaz.app
 
 import android.Manifest
 import android.content.ComponentName
@@ -35,8 +35,8 @@ import com.google.android.gms.cast.framework.CastButtonFactory
 import com.google.android.gms.cast.framework.CastContext
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.snackbar.Snackbar
-import app.shaz.tunz.databinding.ActivityMainBinding
-import app.shaz.tunz.databinding.DialogRateBinding
+import tunez.shaz.app.databinding.ActivityMainBinding
+import tunez.shaz.app.databinding.DialogRateBinding
 
 
 data class FNList (

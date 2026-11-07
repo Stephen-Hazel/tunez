@@ -1,4 +1,4 @@
-package app.shaz.tunz
+package tunez.shaz.app
 
 import org.junit.Test
 

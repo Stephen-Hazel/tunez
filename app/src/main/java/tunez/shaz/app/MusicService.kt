@@ -1,7 +1,7 @@
 // MusicService.kt - need a "foreground service" so we can pop lyrics and
 //    do, uhh, a bunch of stuff while music =still= plays
 
-package app.shaz.tunz
+package tunez.shaz.app
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -64,9 +64,9 @@ import java.util.concurrent.TimeUnit
 
 
 // setup play/pause/skip api
-const val ACTION_PLAY_PAUSE = "app.shaz.tunz.PLAY_PAUSE"
-const val ACTION_NEXT       = "app.shaz.tunz.NEXT"
-const val CHANNEL_ID        = "tunz_playback"
+const val ACTION_PLAY_PAUSE = "tunez.shaz.app.PLAY_PAUSE"
+const val ACTION_NEXT       = "tunez.shaz.app.NEXT"
+const val CHANNEL_ID        = "tunez_playback"
 const val NOTIF_ID          = 1
 const val BT_WATCHDOG_POLL_MS    = 500L
 const val BT_WATCHDOG_TIMEOUT_MS = 5000L
@@ -88,7 +88,7 @@ object Dbg
    private const val KEEP_BYTES = 500_000
 
    fun init (dir: String)
-   {  val f = File ("$dir/tunz_debug.log")
+   {  val f = File ("$dir/tunez_debug.log")
       try {
          if (f.exists () && f.length () > MAX_BYTES)
             f.writeText (f.readText ().takeLast (KEEP_BYTES))
@@ -113,7 +113,7 @@ object Dbg
    // service mid-drive should always leave a trace
    {  val prev = Thread.getDefaultUncaughtExceptionHandler ()
       Thread.setDefaultUncaughtExceptionHandler { thread, e ->
-         log ("TunzCrash", "uncaught in ${thread.name}: " +
+         log ("TunezCrash", "uncaught in ${thread.name}: " +
                             Log.getStackTraceString (e))
          prev?.uncaughtException (thread, e)
       }
@@ -196,7 +196,7 @@ class MusicService: Service ()
    {  override fun onAudioDevicesAdded (devices: Array<out AudioDeviceInfo>)
       {  devices.filter { it.type == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP }
             .forEach {
-               Dbg.log ("TunzBT", "device added: ${it.productName}")
+               Dbg.log ("TunezBT", "device added: ${it.productName}")
                btReconnectedSinceNoisy = true
             }
       }
@@ -204,7 +204,7 @@ class MusicService: Service ()
          devices: Array<out AudioDeviceInfo>)
       {  devices.filter { it.type == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP }
             .forEach {
-               Dbg.log ("TunzBT", "device removed: ${it.productName}")
+               Dbg.log ("TunezBT", "device removed: ${it.productName}")
             }
       }
    }
@@ -248,8 +248,8 @@ class MusicService: Service ()
    {  try {
         val ifaces = NetworkInterface.getNetworkInterfaces ()?.toList ()
          if (ifaces == null) {
-            Log.w ("TunzCast", "no network interfaces, using loopback")
-            Dbg.log ("TunzCast", "no network interfaces, using loopback")
+            Log.w ("TunezCast", "no network interfaces, using loopback")
+            Dbg.log ("TunezCast", "no network interfaces, using loopback")
             return "127.0.0.1"
          }
       // prefer wlan so we don't hand the chromecast a cellular rmnet addr
@@ -264,19 +264,19 @@ class MusicService: Service ()
                   return addr.hostAddress ?: continue
       }
       catch (e: Exception) {
-         Log.w ("TunzCast", "getLocalIp failed", e)
-         Dbg.log ("TunzCast", "getLocalIp failed: $e")
+         Log.w ("TunezCast", "getLocalIp failed", e)
+         Dbg.log ("TunezCast", "getLocalIp failed: $e")
       }
-      Log.w ("TunzCast", "no usable ip found, using loopback")
-      Dbg.log ("TunzCast", "no usable ip found, using loopback")
+      Log.w ("TunezCast", "no usable ip found, using loopback")
+      Dbg.log ("TunezCast", "no usable ip found, using loopback")
       return "127.0.0.1"
    }
 
    private fun buildCastQueueItem (songFile: String): MediaQueueItem
    { val encoded = songFile.split ("/").joinToString ("/") { Uri.encode (it) }
      val url     = "http://${getLocalIp ()}:8765/$encoded"
-      Log.d ("TunzCast", "queueing $url")
-      Dbg.log ("TunzCast", "queueing $url")
+      Log.d ("TunezCast", "queueing $url")
+      Dbg.log ("TunezCast", "queueing $url")
      val fnt     = splitfn (songFile)
      val meta    = CastMeta (CastMeta.MEDIA_TYPE_MUSIC_TRACK)
       meta.putString (CastMeta.KEY_TITLE,  fnt.ttl)
@@ -298,7 +298,7 @@ class MusicService: Service ()
    // the original bt-skip bug hard to pin down
    {  pending?.setResultCallback { r ->
          if (! r.status.isSuccess)
-            Dbg.log ("TunzCast",
+            Dbg.log ("TunezCast",
                "$op failed: ${r.status.statusCode} ${r.status.statusMessage}")
       }
    }
@@ -330,7 +330,8 @@ class MusicService: Service ()
       // (or wrongly absorbed as this load's baseline) and corrupt local
       // ppos/song against a queue that has nothing to do with it
          castQueueLoadPending = true
-         Dbg.log ("TunzCast", "loadCastQueue: ${items.size} item(s) song=$song")
+         Dbg.log ("TunezCast",
+                  "loadCastQueue: ${items.size} item(s) song=$song")
         val pending = cs.remoteMediaClient?.queueLoad (
             items.toTypedArray (), 0, MediaStatus.REPEAT_MODE_REPEAT_OFF, null)
          if (pending == null)  castQueueLoadPending = false
@@ -342,7 +343,7 @@ class MusicService: Service ()
                castAdvanceWasSkip = false
                castPreAdvancePos = 0L
             }
-            else  Dbg.log ("TunzCast", "queueLoad failed: " +
+            else  Dbg.log ("TunezCast", "queueLoad failed: " +
                "${r.status.statusCode} ${r.status.statusMessage}")
          }, 10, TimeUnit.SECONDS)
       }, CAST_QUEUE_LOAD_DEBOUNCE_MS)
@@ -367,7 +368,7 @@ class MusicService: Service ()
      val client = castSession?.remoteMediaClient ?: return
      val items  = ms.queueItems ?: return
       if (items.size != lastCastQueueSize) {
-         Dbg.log ("TunzCast", "cast queue size now ${items.size}")
+         Dbg.log ("TunezCast", "cast queue size now ${items.size}")
          lastCastQueueSize = items.size
       }
      val curId = ms.currentItemId
@@ -385,7 +386,7 @@ class MusicService: Service ()
                    castPreAdvancePos > CAST_SKIP_POS_THRESHOLD_MS
       castAdvanceWasSkip = false
       castPreAdvancePos = 0L
-      Dbg.log ("TunzCast",
+      Dbg.log ("TunezCast",
                "receiver advanced to queue item $curId" +
                (if (wasSkip)  " (skip)" else ""))
       advanceLocal (wasSkip)
@@ -413,7 +414,7 @@ class MusicService: Service ()
       castCb = object : RemoteMediaClient.Callback ()
       {  override fun onStatusUpdated ()
          { val ms = castSession?.remoteMediaClient?.mediaStatus ?: return
-            Dbg.log ("TunzCast",
+            Dbg.log ("TunezCast",
                "status: state=${ms.playerState} idle=${ms.idleReason} " +
                "curId=${ms.currentItemId} qSize=${ms.queueItems?.size} " +
                "pos=${ms.streamPosition}")
@@ -429,8 +430,8 @@ class MusicService: Service ()
             updateMediaSession ()
             handleCastQueueAdvance (ms)
             if (ms.playerState == MediaStatus.PLAYER_STATE_IDLE) {
-               Log.d ("TunzCast", "idle reason=${ms.idleReason}")
-               Dbg.log ("TunzCast", "idle reason=${ms.idleReason}")
+               Log.d ("TunezCast", "idle reason=${ms.idleReason}")
+               Dbg.log ("TunezCast", "idle reason=${ms.idleReason}")
                if (ms.idleReason == MediaStatus.IDLE_REASON_FINISHED) {
                   castErrorStreak = 0
                   next ()
@@ -440,10 +441,10 @@ class MusicService: Service ()
             // burn through the whole playlist
                else if (ms.idleReason == MediaStatus.IDLE_REASON_ERROR) {
                   castErrorStreak++
-                  Log.d ("TunzCast", "error streak=$castErrorStreak")
-                  Dbg.log ("TunzCast", "error streak=$castErrorStreak")
+                  Log.d ("TunezCast", "error streak=$castErrorStreak")
+                  Dbg.log ("TunezCast", "error streak=$castErrorStreak")
                   if (castErrorStreak <= 3)  next ()
-                  else  Dbg.log ("TunzCast",
+                  else  Dbg.log ("TunezCast",
                      "giving up after $castErrorStreak consecutive errors")
                }
             }
@@ -459,16 +460,16 @@ class MusicService: Service ()
    // any playback state
    {  reconnectHandler.post {
         if (castSkipInFlight) {
-            Dbg.log ("TunzCast",
+            Dbg.log ("TunezCast",
                "ignoring stream reset for $uri - skip in flight")
             return@post
          }
         if (isCasting () && uri == song) {
             castErrorStreak++
-            Log.d ("TunzCast", "http stream error streak=$castErrorStreak")
-            Dbg.log ("TunzCast", "http stream error streak=$castErrorStreak")
+            Log.d ("TunezCast", "http stream error streak=$castErrorStreak")
+            Dbg.log ("TunezCast", "http stream error streak=$castErrorStreak")
             if (castErrorStreak <= 3)  next ()
-            else  Dbg.log ("TunzCast",
+            else  Dbg.log ("TunezCast",
                "giving up after $castErrorStreak consecutive errors")
          }
       }
@@ -491,7 +492,7 @@ class MusicService: Service ()
      val wm = applicationContext
                  .getSystemService (Context.WIFI_SERVICE) as WifiManager
       wifiLock = wm.createWifiLock (WifiManager.WIFI_MODE_FULL_HIGH_PERF,
-                                    "tunz:cast")
+                                    "tunez:cast")
       wifiLock?.acquire ()
    }
 
@@ -510,28 +511,29 @@ class MusicService: Service ()
         CastDevice.getFromBundle (it.extras)?.deviceId == deviceId
      }
       if (route != null) {
-         Log.d ("TunzCast", "reconnecting to $deviceId")
-         Dbg.log ("TunzCast", "reconnecting to $deviceId")
+         Log.d ("TunezCast", "reconnecting to $deviceId")
+         Dbg.log ("TunezCast", "reconnecting to $deviceId")
          router.selectRoute (route)
          return
       }
       reconnectAttempts++
       if (reconnectAttempts <= 5) {
-         Log.d ("TunzCast",
+         Log.d ("TunezCast",
                 "device $deviceId not found, retry $reconnectAttempts/5")
-         Dbg.log ("TunzCast",
+         Dbg.log ("TunezCast",
                   "device $deviceId not found, retry $reconnectAttempts/5")
          reconnectHandler.postDelayed ({ tryReconnectCast () }, 3000)
       }
       else {
-         Log.w ("TunzCast", "giving up reconnecting to $deviceId")
-         Dbg.log ("TunzCast", "giving up reconnecting to $deviceId")
+         Log.w ("TunezCast", "giving up reconnecting to $deviceId")
+         Dbg.log ("TunezCast", "giving up reconnecting to $deviceId")
       }
    }
 
    private val castListener = object : SessionManagerListener<CastSession>
    {  override fun onSessionStarted (session: CastSession, id: String)
-      {  Dbg.log ("TunzCast", "session started device=${session.castDevice?.deviceId}")
+      {  Dbg.log ("TunezCast", "session started device=" +
+                                  "${session.castDevice?.deviceId}")
          castSession = session
          castErrorStreak = 0
          reconnectAttempts = 0
@@ -553,7 +555,7 @@ class MusicService: Service ()
 
       override fun onSessionResumed (session: CastSession,
                                      wasSuspended: Boolean)
-      {  Dbg.log ("TunzCast",
+      {  Dbg.log ("TunezCast",
                   "session resumed wasSuspended=$wasSuspended " +
                   "device=${session.castDevice?.deviceId}")
          castSession = session
@@ -574,8 +576,8 @@ class MusicService: Service ()
       }
 
       override fun onSessionEnded (session: CastSession, error: Int)
-      {  Log.d ("TunzCast", "session ended error=$error")
-         Dbg.log ("TunzCast", "session ended error=$error")
+      {  Log.d ("TunezCast", "session ended error=$error")
+         Dbg.log ("TunezCast", "session ended error=$error")
          unregCastCb ()
          castSession = null
          volumeProvider = null
@@ -597,8 +599,8 @@ class MusicService: Service ()
                   mplay?.setOnCompletionListener { localErrorStreak = 0; next () }
                }
                catch (e: Exception) {
-                  Log.e ("TunzLocal", "fallback playback failed for $song", e)
-                  Dbg.log ("TunzLocal",
+                  Log.e ("TunezLocal", "fallback playback failed for $song", e)
+                  Dbg.log ("TunezLocal",
                            "fallback playback failed for $song: $e")
                }
             }
@@ -612,20 +614,20 @@ class MusicService: Service ()
       }
 
       override fun onSessionStarting    (s: CastSession)
-      {  Dbg.log ("TunzCast", "session starting") }
+      {  Dbg.log ("TunezCast", "session starting") }
       override fun onSessionStartFailed (s: CastSession, e: Int)
-      {  Log.e ("TunzCast", "session start failed error=$e")
-         Dbg.log ("TunzCast", "session start failed error=$e") }
+      {  Log.e ("TunezCast", "session start failed error=$e")
+         Dbg.log ("TunezCast", "session start failed error=$e") }
       override fun onSessionEnding      (s: CastSession)
-      {  Dbg.log ("TunzCast", "session ending") }
+      {  Dbg.log ("TunezCast", "session ending") }
       override fun onSessionResuming    (s: CastSession, id: String)
-      {  Dbg.log ("TunzCast", "session resuming id=$id") }
+      {  Dbg.log ("TunezCast", "session resuming id=$id") }
       override fun onSessionResumeFailed(s: CastSession, e: Int)
-      {  Log.e ("TunzCast", "session resume failed error=$e")
-         Dbg.log ("TunzCast", "session resume failed error=$e") }
+      {  Log.e ("TunezCast", "session resume failed error=$e")
+         Dbg.log ("TunezCast", "session resume failed error=$e") }
       override fun onSessionSuspended   (s: CastSession, r: Int)
-      {  Log.d ("TunzCast", "session suspended reason=$r")
-         Dbg.log ("TunzCast", "session suspended reason=$r") }
+      {  Log.d ("TunezCast", "session suspended reason=$r")
+         Dbg.log ("TunezCast", "session suspended reason=$r") }
    }
 
    fun togglePlayPause (): Boolean
@@ -662,16 +664,16 @@ class MusicService: Service ()
       startForeground (NOTIF_ID,
          NotificationCompat.Builder (this, CHANNEL_ID)
             .setSmallIcon (R.drawable.outline_music_cast_24)
-            .setContentTitle ("Tunz")
+            .setContentTitle ("SHazTunez")
             .build ())
 
       mplay = newMediaPlayer ()
-   // all our mp3 files sit flat in /Music/tunz, rating suffix in filename
+   // all our mp3 files sit flat in /Music/tunez, rating suffix in filename
       path = Environment.getExternalStorageDirectory ().toString () +
-                                                                   "/Music/tunz"
+                                                                  "/Music/tunez"
       Dbg.init (File (path).parent !!)
       Dbg.installCrashLogger ()
-      Dbg.log ("TunzSkip", "onCreate: service created")
+      Dbg.log ("TunezSkip", "onCreate: service created")
    // load shuf,picked dirs from last time
      val p = getSharedPreferences ("prf", MODE_PRIVATE)
       shuf = p.getBoolean   ("shuf", true)
@@ -697,14 +699,14 @@ class MusicService: Service ()
                      else {
                        val newName = renameRating (old, newR)
                         if (File (path, newName).exists ()) {
-                           Log.w ("TunzRate",
+                           Log.w ("TunezRate",
                                   "migration skip, exists: $newName")
                            old
                         }
                         else if (f.renameTo (File (path, newName)))
                               newName
                         else {
-                           Log.w ("TunzRate", "migration rename failed: $old")
+                           Log.w ("TunezRate", "migration rename failed: $old")
                            old
                         }
                      }
@@ -712,10 +714,10 @@ class MusicService: Service ()
       fns.groupBy { splitfn (it).dir }.toSortedMap ().forEach { (d, ls) ->
          mp3.add (FNList (d, ls.toMutableList ()))
       }
-      mediaSession = MediaSessionCompat (this, "TunzSession").apply {
+      mediaSession = MediaSessionCompat (this, "TunezSession").apply {
          setCallback (object: MediaSessionCompat.Callback ()
          {  override fun onPlay ()
-            {  Dbg.log ("TunzSkip", "onPlay")
+            {  Dbg.log ("TunezSkip", "onPlay")
                btWatchdogHandler.removeCallbacksAndMessages (null)
                mplay?.start ()
                updateMediaSession ()
@@ -723,16 +725,16 @@ class MusicService: Service ()
             }
 
             override fun onPause ()
-            {  Dbg.log ("TunzSkip", "onPause")
+            {  Dbg.log ("TunezSkip", "onPause")
                if (noisyPauseGuard) {
                   noisyPauseGuard = false
-                  Dbg.log ("TunzSkip",
+                  Dbg.log ("TunezSkip",
                            "onPause: noisy-pause guard held, " +
                            "watchdog kept armed")
                }
                else {
                   btWatchdogHandler.removeCallbacksAndMessages (null)
-                  Dbg.log ("TunzSkip",
+                  Dbg.log ("TunezSkip",
                            "onPause: watchdog cancelled (manual pause)")
                }
                mplay?.pause ()
@@ -741,55 +743,55 @@ class MusicService: Service ()
             }
 
             override fun onSkipToNext ()
-            {  Dbg.log ("TunzSkip", "onSkipToNext")
+            {  Dbg.log ("TunezSkip", "onSkipToNext")
                next (skipped = true)
             }
 
          // not implemented - logged so an assistant call landing here
          // instead of onSkipToNext shows up rather than vanishing
             override fun onStop ()
-            {  Dbg.log ("TunzSkip", "onStop") }
+            {  Dbg.log ("TunezSkip", "onStop") }
 
             override fun onSkipToPrevious ()
-            {  Dbg.log ("TunzSkip", "onSkipToPrevious") }
+            {  Dbg.log ("TunezSkip", "onSkipToPrevious") }
 
             override fun onSeekTo (pos: Long)
-            {  Dbg.log ("TunzSkip", "onSeekTo pos=$pos") }
+            {  Dbg.log ("TunezSkip", "onSeekTo pos=$pos") }
 
             override fun onFastForward ()
-            {  Dbg.log ("TunzSkip", "onFastForward") }
+            {  Dbg.log ("TunezSkip", "onFastForward") }
 
             override fun onRewind ()
-            {  Dbg.log ("TunzSkip", "onRewind") }
+            {  Dbg.log ("TunezSkip", "onRewind") }
 
             override fun onSetRating (rating: RatingCompat)
-            {  Dbg.log ("TunzRate", "onSetRating rating=$rating " +
+            {  Dbg.log ("TunezRate", "onSetRating rating=$rating " +
                         "isThumbUp=${rating.isThumbUp}")
                setRating (rating.isThumbUp) }
 
             override fun onCustomAction (action: String, extras: Bundle?)
-            {  Dbg.log ("TunzSkip", "onCustomAction action=$action " +
+            {  Dbg.log ("TunezSkip", "onCustomAction action=$action " +
                         "extras=$extras") }
 
             override fun onPlayFromSearch (query: String?, extras: Bundle?)
-            {  Dbg.log ("TunzSkip", "onPlayFromSearch query=$query " +
+            {  Dbg.log ("TunezSkip", "onPlayFromSearch query=$query " +
                         "extras=$extras") }
 
             override fun onPlayFromMediaId (mediaId: String?,
                                              extras: Bundle?)
-            {  Dbg.log ("TunzSkip", "onPlayFromMediaId mediaId=$mediaId " +
+            {  Dbg.log ("TunezSkip", "onPlayFromMediaId mediaId=$mediaId " +
                         "extras=$extras") }
 
             override fun onPlayFromUri (uri: Uri?, extras: Bundle?)
-            {  Dbg.log ("TunzSkip", "onPlayFromUri uri=$uri " +
+            {  Dbg.log ("TunezSkip", "onPlayFromUri uri=$uri " +
                         "extras=$extras") }
 
             override fun onPrepare ()
-            {  Dbg.log ("TunzSkip", "onPrepare") }
+            {  Dbg.log ("TunezSkip", "onPrepare") }
 
             override fun onCommand (command: String, args: Bundle?,
                                      cb: ResultReceiver?)
-            {  Dbg.log ("TunzSkip", "onCommand command=$command " +
+            {  Dbg.log ("TunezSkip", "onCommand command=$command " +
                         "args=$args") }
          })
          setRatingType (RatingCompat.RATING_THUMB_UP_DOWN)
@@ -813,7 +815,7 @@ class MusicService: Service ()
             else                                              ->
                "UNKNOWN($focusChange)"
          }
-         Dbg.log ("TunzFocus",
+         Dbg.log ("TunezFocus",
                   "onAudioFocusChange: $name isPlaying=${mplay?.isPlaying} " +
                   "btA2dp=${isBtA2dpConnected ()} mode=${am.mode} " +
                   "pos=${mplay?.currentPosition} routed=${routedDeviceStr ()} " +
@@ -830,7 +832,7 @@ class MusicService: Service ()
          if (focusChange == AudioManager.AUDIOFOCUS_GAIN &&
              mplay?.isPlaying == true) {
            val posBefore = mplay?.currentPosition ?: -1
-            Dbg.log ("TunzFocus",
+            Dbg.log ("TunezFocus",
                      "GAIN: full recreate, pos=$posBefore " +
                      "routed=${routedDeviceStr ()} vol=${volumeStr ()}")
             try {
@@ -845,10 +847,10 @@ class MusicService: Service ()
                }
             }
             catch (e: Exception) {
-               Dbg.log ("TunzLocal", "GAIN recreate failed: $e")
+               Dbg.log ("TunezLocal", "GAIN recreate failed: $e")
             }
             focusGainCheckHandler.postDelayed ({
-               Dbg.log ("TunzFocus",
+               Dbg.log ("TunezFocus",
                         "GAIN: pos check +1500ms pos=" +
                         "${mplay?.currentPosition} " +
                         "isPlaying=${mplay?.isPlaying} " +
@@ -859,7 +861,7 @@ class MusicService: Service ()
     @Suppress ("DEPRECATION")
     val focusRes = am.requestAudioFocus (audioFocusListener,
          AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN)
-      Dbg.log ("TunzFocus", "requestAudioFocus result=$focusRes")
+      Dbg.log ("TunezFocus", "requestAudioFocus result=$focusRes")
 
       try {
         val cc = CastContext.getSharedInstance (this)
@@ -881,7 +883,7 @@ class MusicService: Service ()
    override fun onStartCommand (intent: Intent?, flags: Int, startId: Int): Int
    {  val key = intent?.let { IntentCompat.getParcelableExtra (
                   it, Intent.EXTRA_KEY_EVENT, KeyEvent::class.java) }
-      Dbg.log ("TunzSkip",
+      Dbg.log ("TunezSkip",
                "onStartCommand action=${intent?.action} key=${key?.keyCode}")
       MediaButtonReceiver.handleIntent (mediaSession, intent)
       when (intent?.action) {
@@ -895,7 +897,7 @@ class MusicService: Service ()
    override fun onDestroy ()
    // shut it all down
    {  super.onDestroy ()
-      Dbg.log ("TunzSkip", "onDestroy: service destroyed")
+      Dbg.log ("TunezSkip", "onDestroy: service destroyed")
       unregisterReceiver (btDisco)
     val am = getSystemService (Context.AUDIO_SERVICE) as AudioManager
       am.unregisterAudioDeviceCallback (audioDeviceCallback)
@@ -936,7 +938,7 @@ class MusicService: Service ()
 
 
    override fun onTaskRemoved (rootIntent: Intent?)
-   {  Dbg.log ("TunzSkip", "onTaskRemoved: app swiped away, stopping")
+   {  Dbg.log ("TunezSkip", "onTaskRemoved: app swiped away, stopping")
       stopForeground (STOP_FOREGROUND_REMOVE)
       stopSelf ()
    }
@@ -961,7 +963,7 @@ class MusicService: Service ()
    private fun loadAlbumArt ()
    // if our mp3 has an embedded bitmap show it
    { val path = Environment.getExternalStorageDirectory ().toString () +
-                                                             "/Music/tunz/$song"
+                                                            "/Music/tunez/$song"
      val mmr  = MediaMetadataRetriever ()
       albumArt = try {
          mmr.setDataSource (path)
@@ -1045,8 +1047,8 @@ class MusicService: Service ()
             mplay?.setOnCompletionListener { localErrorStreak = 0; next () }
          }
          catch (e: Exception) {
-            Log.e ("TunzLocal", "prepare failed for $song", e)
-            Dbg.log ("TunzLocal", "prepare failed for $song: $e")
+            Log.e ("TunezLocal", "prepare failed for $song", e)
+            Dbg.log ("TunezLocal", "prepare failed for $song: $e")
             localErrorStreak++
             if (localErrorStreak <= 3)  next ()
          }
@@ -1092,12 +1094,12 @@ class MusicService: Service ()
 
    fun next (row: Int = -1, skipped: Boolean = false)
    // row set if song table got doubleclicked.  else itsa neeext
-   {  Dbg.log ("TunzSkip",
+   {  Dbg.log ("TunezSkip",
                "next enter row=$row ppos=$ppos playSize=${play.size}")
    // a NEXT action (skip button, media key) can reach a just-created
    // service before the playlist is rebuilt - nothing to skip to yet
       if (row == -1 && ppos !in play.indices) {
-         Dbg.log ("TunzSkip",
+         Dbg.log ("TunezSkip",
                   "next: ppos=$ppos out of range for playSize=" +
                   "${play.size}, ignoring")
          return
@@ -1110,7 +1112,7 @@ class MusicService: Service ()
    // and a "Hey Google, skip" heard by the cast device itself (which never
    // reaches this app directly) end up updating state in exactly one place
       if (row == -1 && isCasting ()) {
-         Dbg.log ("TunzCast", "next: casting, sending queueNext")
+         Dbg.log ("TunezCast", "next: casting, sending queueNext")
       // the receiver drops its in-flight HTTP connection to the current
       // song the instant it acts on this - that's an expected side effect
       // of skipping, not a playback failure, so tell handleHttpStreamError
@@ -1120,7 +1122,7 @@ class MusicService: Service ()
          castSession?.remoteMediaClient?.queueNext (null)?.setResultCallback {
             r ->
             if (! r.status.isSuccess) {
-               Dbg.log ("TunzCast", "queueNext failed: " +
+               Dbg.log ("TunezCast", "queueNext failed: " +
                   "${r.status.statusCode} ${r.status.statusMessage}")
                castSkipInFlight = false
             }
@@ -1152,8 +1154,8 @@ class MusicService: Service ()
                mplay?.setOnCompletionListener { localErrorStreak = 0; next () }
             }
             catch (e: Exception) {
-               Log.e ("TunzLocal", "prepare failed for $song", e)
-               Dbg.log ("TunzLocal", "prepare failed for $song: $e")
+               Log.e ("TunezLocal", "prepare failed for $song", e)
+               Dbg.log ("TunezLocal", "prepare failed for $song: $e")
                localErrorStreak++
                if (localErrorStreak <= 3)  next ()
             }
@@ -1161,7 +1163,7 @@ class MusicService: Service ()
          updateMediaSession ()
          postNotification ()
       }
-      Dbg.log ("TunzSkip",
+      Dbg.log ("TunezSkip",
                "next exit ppos=$ppos playSize=${play.size} song=$song")
       callback?.onSongChanged (removedPos, ppos)
    }
@@ -1170,7 +1172,7 @@ class MusicService: Service ()
    fun setRating (up: Boolean)
    // thumbs up promotes b/bAn/bSt -> a/aAn/aSt, thumbs down demotes back
    {  if (song.isEmpty ()) {
-         Dbg.log ("TunzRate", "setRating: no song playing, ignored")
+         Dbg.log ("TunezRate", "setRating: no song playing, ignored")
          return
       }
      val cur = splitfn (song).dir
@@ -1188,12 +1190,12 @@ class MusicService: Service ()
            else  -> null
         }
       if (bucket == null) {
-         Dbg.log ("TunzRate", "setRating: no mapping for up=$up cur=$cur " +
+         Dbg.log ("TunezRate", "setRating: no mapping for up=$up cur=$cur " +
                   "song=$song")
          return
       }
      val result = rateSong (bucket)
-      Dbg.log ("TunzRate", "setRating: up=$up cur=$cur bucket=$bucket " +
+      Dbg.log ("TunezRate", "setRating: up=$up cur=$cur bucket=$bucket " +
                "result=$result")
    }
 
@@ -1206,11 +1208,11 @@ class MusicService: Service ()
      val newFn     = renameRating (oldFn, rating)
       if (newFn == oldFn)  return oldFn
       if (File (path, newFn).exists ()) {
-         Log.w ("TunzRate", "rate skip, exists: $newFn")
+         Log.w ("TunezRate", "rate skip, exists: $newFn")
          return null
       }
       if (! File (path, oldFn).renameTo (File (path, newFn))) {
-         Log.w ("TunzRate", "rate rename failed: $oldFn -> $newFn")
+         Log.w ("TunezRate", "rate rename failed: $oldFn -> $newFn")
          return null
       }
       play [ppos] = newFn
@@ -1235,7 +1237,7 @@ class MusicService: Service ()
       catch (e: Exception) { }
      val d = splitfn (oldFn).dir
       mp3.find { it.dir == d }?.fn?.remove (oldFn)
-      Dbg.log ("TunzRate", "deleted $oldFn")
+      Dbg.log ("TunezRate", "deleted $oldFn")
       next ()
       return true
    }
@@ -1255,7 +1257,7 @@ class MusicService: Service ()
    private fun handleNoisyPause ()
    {  noisyPauseGuard = true
       btReconnectedSinceNoisy = false
-      Dbg.log ("TunzSkip", "handleNoisyPause: pausing, arming watchdog guard")
+      Dbg.log ("TunezSkip", "handleNoisyPause: pausing, arming watchdog guard")
       mediaSession.controller.transportControls.pause ()
       startBtResumeWatchdog ()
    }
@@ -1265,8 +1267,8 @@ class MusicService: Service ()
    private fun newMediaPlayer (): MediaPlayer
    {  val mp = MediaPlayer ()
       mp.setOnErrorListener { _, what, extra ->
-         Log.e ("TunzLocal", "player error what=$what extra=$extra")
-         Dbg.log ("TunzLocal",
+         Log.e ("TunezLocal", "player error what=$what extra=$extra")
+         Dbg.log ("TunezLocal",
                   "player error what=$what extra=$extra song=$song")
          localErrorStreak++
          if (localErrorStreak <= 3)  next ()
@@ -1276,7 +1278,7 @@ class MusicService: Service ()
    // fires the instant mplay's actual bound output device changes,
    // whether or not that lines up with any focus-change we saw
       mp.addOnRoutingChangedListener ({
-         Dbg.log ("TunzFocus", "routing changed: routed=${routedDeviceStr ()}")
+         Dbg.log ("TunezFocus", "routing changed: routed=${routedDeviceStr ()}")
       }, Handler (Looper.getMainLooper ()))
       return mp
    }
@@ -1310,7 +1312,7 @@ class MusicService: Service ()
    }
 
 // getDevices() lags the real disconnect: on every real car-BT-off event
-// seen in tunz_debug.log, the noisy broadcast fired, getDevices() still
+// seen in tunez_debug.log, the noisy broadcast fired, getDevices() still
 // showed the A2DP device connected for another 500ms-2s, and only then
 // did onAudioDevicesRemoved() actually fire. Polling isBtA2dpConnected()
 // on a fixed timer reads that stale snapshot and "resumes" playback right
@@ -1321,25 +1323,25 @@ class MusicService: Service ()
    private fun startBtResumeWatchdog ()
    {  btWatchdogHandler.removeCallbacksAndMessages (null)
      val deadline = SystemClock.elapsedRealtime () + BT_WATCHDOG_TIMEOUT_MS
-      Dbg.log ("TunzSkip",
+      Dbg.log ("TunezSkip",
                "bt watchdog: armed, timeout=${BT_WATCHDOG_TIMEOUT_MS}ms " +
                "poll=${BT_WATCHDOG_POLL_MS}ms")
       fun poll ()
       {  val remaining = deadline - SystemClock.elapsedRealtime ()
          if (btReconnectedSinceNoisy) {
-            Dbg.log ("TunzSkip",
+            Dbg.log ("TunezSkip",
                      "bt watchdog: route back, resuming " +
                      "(remaining=${remaining}ms)")
             mediaSession.controller.transportControls.play ()
          }
          else if (remaining > 0) {
-            Dbg.log ("TunzSkip",
+            Dbg.log ("TunezSkip",
                      "bt watchdog: poll, still no route, " +
                      "remaining=${remaining}ms")
             btWatchdogHandler.postDelayed ({ poll () }, BT_WATCHDOG_POLL_MS)
          }
          else
-            Dbg.log ("TunzSkip",
+            Dbg.log ("TunezSkip",
                      "bt watchdog: gave up, staying paused, " +
                      "outputs=[${outputDevicesDump ()}]")
       }
@@ -1436,7 +1438,7 @@ class BTDisco (private val mp: () -> MediaPlayer?,
 {  override fun onReceive (context: Context, intent: Intent)
    {  if (intent.action == AudioManager.ACTION_AUDIO_BECOMING_NOISY) {
         val playing = mp ()?.isPlaying == true
-         Dbg.log ("TunzSkip", "audio becoming noisy, isPlaying=$playing")
+         Dbg.log ("TunezSkip", "audio becoming noisy, isPlaying=$playing")
          if (playing)  onNoisy ()
       }
    }

@@ -1,4 +1,4 @@
-package app.shaz.tunz
+package tunez.shaz.app
 
 import android.content.Context
 import com.google.android.gms.cast.framework.CastOptions
