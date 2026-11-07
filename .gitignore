@@ -2,3 +2,4 @@
 .kotlin/
 .claude/
 keystore.properties
+docs/store/*.mp4
