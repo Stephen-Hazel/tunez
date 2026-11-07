@@ -30,9 +30,11 @@ This is a **single-Activity, single-file app**. Nearly all logic lives in `app/s
 **Music files on device** (`/Music/tunez/`): all mp3s sit flat directly in
 this one directory — no subdirectories. Each file's rating tag is
 suffixed on the filename instead of being a folder name, so re-rating a
-song is just a rename. A file is rated when its name (sans `.mp3`) has 3+
-`-` (`isRated`); the rating is whatever follows the last one. Unrated
-files go in the `new` bucket (`UNRATED`). There's no fixed rating list:
+song is just a rename. A file is rated when its name (sans `.mp3`)
+contains ` - ` (space-dash-space, `isRated`); the rating is whatever
+follows the last ` - `. The other fields may be joined by bare `-` or by
+` - `, so a rating is never stripped - rerating to `new` writes ` - new`.
+Files with no ` - ` at all go in the `new` bucket (`UNRATED`). There's no fixed rating list:
 `RATINGS` is rebuilt by `MusicService.reRate ()` from the distinct
 suffixes on the files (plus `new` only if unrated songs exist), after the
 scan and after every rerate/delete, so a rating vanishes with its last

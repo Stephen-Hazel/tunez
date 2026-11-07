@@ -2,8 +2,31 @@
     <!-- Base application theme. -->
     <style name="Base.Theme.Tunez"
            parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your light theme here. -->
-        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+        <!-- blue instead of the default m3 purple -->
+        <item name="colorPrimary">@color/lt_primary</item>
+        <item name="colorOnPrimary">@color/lt_onPrimary</item>
+        <item name="colorPrimaryContainer">@color/lt_primaryContainer</item>
+        <item name="colorOnPrimaryContainer">@color/lt_onPrimaryContainer</item>
+        <item name="colorSecondary">@color/lt_secondary</item>
+        <item name="colorOnSecondary">@color/lt_onSecondary</item>
+        <item name="colorSecondaryContainer">@color/lt_secondaryContainer</item>
+        <item name="colorOnSecondaryContainer">@color/lt_onSecondaryContainer</item>
+        <item name="colorTertiary">@color/lt_tertiary</item>
+        <item name="colorOnTertiary">@color/lt_onTertiary</item>
+        <item name="colorTertiaryContainer">@color/lt_tertiaryContainer</item>
+        <item name="colorOnTertiaryContainer">@color/lt_onTertiaryContainer</item>
+        <item name="colorSurface">@color/lt_surface</item>
+        <item name="colorOnSurface">@color/lt_onSurface</item>
+        <item name="colorSurfaceVariant">@color/lt_surfaceVariant</item>
+        <item name="colorOnSurfaceVariant">@color/lt_onSurfaceVariant</item>
+        <item name="colorOutline">@color/lt_outline</item>
+        <item name="colorSurfaceContainerLowest">@color/lt_surfaceContainerLowest</item>
+        <item name="colorSurfaceContainerLow">@color/lt_surfaceContainerLow</item>
+        <item name="colorSurfaceContainer">@color/lt_surfaceContainer</item>
+        <item name="colorSurfaceContainerHigh">@color/lt_surfaceContainerHigh</item>
+        <item name="colorSurfaceContainerHighest">@color/lt_surfaceContainerHighest</item>
+        <item name="android:colorBackground">@color/lt_surface</item>
+        <item name="colorOnBackground">@color/lt_onSurface</item>
     </style>
 
     <style name="Theme.Tunez" parent="Base.Theme.Tunez" />

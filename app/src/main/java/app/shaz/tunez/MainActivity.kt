@@ -11,6 +11,7 @@ import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.InsetDrawable
 import android.graphics.drawable.LayerDrawable
 import android.net.Uri
 import android.os.Build
@@ -59,14 +60,14 @@ fun substr (s: String, b: Int, l: Int): String
 
 
 fun rawRating (fn: String): String
-// whatever's after the last - (sans .mp3), rating or not
-{  return fn.removeSuffix (".mp3").substringAfterLast ("-").trim ()
+// whatever's after the last " - " (sans .mp3), rating or not
+{  return fn.removeSuffix (".mp3").substringAfterLast (" - ").trim ()
 }
 
 
 fun isRated (fn: String): Boolean
-// group - year album song# - title - rating  (unrated has no last one)
-{  return fn.removeSuffix (".mp3").count { it == '-' } >= 3
+// the rating always hangs off a " - " (spaces n all) - no " - " = unrated
+{  return fn.removeSuffix (".mp3").contains (" - ")
 }
 
 
@@ -76,8 +77,8 @@ fun splitfn (fn: String): FNTitle
    s = substr (s, 0, s.length-4)
   var d = UNRATED
    if (isRated (fn)) {
-      d = s.substringAfterLast ("-").trim ()
-      s = s.substringBeforeLast ("-")
+      d = s.substringAfterLast (" - ").trim ()
+      s = s.substringBeforeLast (" - ")
    }
    s = s.replace ("_", " ")
   val f = s.indexOf     ("-")
@@ -119,7 +120,7 @@ fun renameRating (fn: String, rating: String): String
 // (unrated files just get the rating tacked on the end)
 {  val base = fn.removeSuffix (".mp3")
    if (! isRated (fn))  return "${base.trimEnd ()} - $rating.mp3"
-  val idx  = base.lastIndexOf ("-")
+  val idx  = base.lastIndexOf (" - ")
    if (idx == -1)  return fn
   val prefix = base.substring (0, idx).trimEnd ()
    return "$prefix - $rating.mp3"
@@ -287,6 +288,10 @@ class MainActivity: AppCompatActivity (), PlaybackCallback
       fillCheckRow ()
       b.btnLyr.setOnClickListener { s.lyricsSearch () }
       b.btnRate.setOnClickListener { showRateDialog () }
+   // a space's width between shuf's label n the rate button
+     val lp = b.btnRate.layoutParams as ViewGroup.MarginLayoutParams
+      lp.marginStart = b.cbShuf.paint.measureText (" ").toInt ()
+      b.btnRate.layoutParams = lp
       try {
          CastButtonFactory.setUpMediaRouteButton (this, b.btnCast)
       }
@@ -311,6 +316,9 @@ class MainActivity: AppCompatActivity (), PlaybackCallback
          }
          b.loPick.addView (cb)
       }
+   // a space's width between one label n the next checkbox
+     val cb0 = b.loPick.getChildAt (0) as? CheckBox ?: return
+      b.loPick.chipSpacingHorizontal = cb0.paint.measureText (" ").toInt ()
    }
 
 
@@ -332,7 +340,8 @@ class MainActivity: AppCompatActivity (), PlaybackCallback
    // ratings wrapped in as many rows as needed, current one grayed out
    {  list.removeAllViews ()
      val fg = MaterialColors.getColor (
-        list, android.R.attr.textColorPrimary, Color.BLACK)
+        list, com.google.android.material.R.attr.colorOnPrimaryContainer,
+        Color.BLACK)
       sortedRatings ().forEach { r ->
         val tv = TextView (this)
          tv.text = r
@@ -370,6 +379,14 @@ class MainActivity: AppCompatActivity (), PlaybackCallback
          .setView (dlgB.root)
          .setOnDismissListener { rateDialog = null }
          .show ()
+   // blue rounded bg instead of the stock gray
+     val bg = GradientDrawable ()
+      bg.cornerRadius = dp (16).toFloat ()
+      bg.setColor (MaterialColors.getColor (
+         dlgB.root, com.google.android.material.R.attr.colorPrimaryContainer,
+         0xFFD1E4FF.toInt ()))
+      rateDialog?.window?.setBackgroundDrawable (
+         InsetDrawable (bg, dp (16)))
    }
 
 

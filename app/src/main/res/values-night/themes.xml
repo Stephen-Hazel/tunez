@@ -2,7 +2,30 @@
     <!-- Base application theme. -->
     <style name="Base.Theme.Tunez"
            parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your dark theme here. -->
-        <!-- <item name="colorPrimary">@color/my_dark_primary</item> -->
+        <!-- blue instead of the default m3 purple -->
+        <item name="colorPrimary">@color/dk_primary</item>
+        <item name="colorOnPrimary">@color/dk_onPrimary</item>
+        <item name="colorPrimaryContainer">@color/dk_primaryContainer</item>
+        <item name="colorOnPrimaryContainer">@color/dk_onPrimaryContainer</item>
+        <item name="colorSecondary">@color/dk_secondary</item>
+        <item name="colorOnSecondary">@color/dk_onSecondary</item>
+        <item name="colorSecondaryContainer">@color/dk_secondaryContainer</item>
+        <item name="colorOnSecondaryContainer">@color/dk_onSecondaryContainer</item>
+        <item name="colorTertiary">@color/dk_tertiary</item>
+        <item name="colorOnTertiary">@color/dk_onTertiary</item>
+        <item name="colorTertiaryContainer">@color/dk_tertiaryContainer</item>
+        <item name="colorOnTertiaryContainer">@color/dk_onTertiaryContainer</item>
+        <item name="colorSurface">@color/dk_surface</item>
+        <item name="colorOnSurface">@color/dk_onSurface</item>
+        <item name="colorSurfaceVariant">@color/dk_surfaceVariant</item>
+        <item name="colorOnSurfaceVariant">@color/dk_onSurfaceVariant</item>
+        <item name="colorOutline">@color/dk_outline</item>
+        <item name="colorSurfaceContainerLowest">@color/dk_surfaceContainerLowest</item>
+        <item name="colorSurfaceContainerLow">@color/dk_surfaceContainerLow</item>
+        <item name="colorSurfaceContainer">@color/dk_surfaceContainer</item>
+        <item name="colorSurfaceContainerHigh">@color/dk_surfaceContainerHigh</item>
+        <item name="colorSurfaceContainerHighest">@color/dk_surfaceContainerHighest</item>
+        <item name="android:colorBackground">@color/dk_surface</item>
+        <item name="colorOnBackground">@color/dk_onSurface</item>
     </style>
 </resources>

@@ -2,4 +2,52 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!-- blue m3 tonal palette (seed #0061A4) - light -->
+    <color name="lt_primary">#FF0061A4</color>
+    <color name="lt_onPrimary">#FFFFFFFF</color>
+    <color name="lt_primaryContainer">#FFD1E4FF</color>
+    <color name="lt_onPrimaryContainer">#FF001D36</color>
+    <color name="lt_secondary">#FF535F70</color>
+    <color name="lt_onSecondary">#FFFFFFFF</color>
+    <color name="lt_secondaryContainer">#FFD7E3F7</color>
+    <color name="lt_onSecondaryContainer">#FF101C2B</color>
+    <color name="lt_tertiary">#FF00658E</color>
+    <color name="lt_onTertiary">#FFFFFFFF</color>
+    <color name="lt_tertiaryContainer">#FFC7E7FF</color>
+    <color name="lt_onTertiaryContainer">#FF001E2E</color>
+    <color name="lt_surface">#FFFDFCFF</color>
+    <color name="lt_onSurface">#FF1A1C1E</color>
+    <color name="lt_surfaceVariant">#FFDFE2EB</color>
+    <color name="lt_onSurfaceVariant">#FF43474E</color>
+    <color name="lt_outline">#FF73777F</color>
+    <color name="lt_surfaceContainerLowest">#FFFFFFFF</color>
+    <color name="lt_surfaceContainerLow">#FFF3F3F7</color>
+    <color name="lt_surfaceContainer">#FFEDEDF1</color>
+    <color name="lt_surfaceContainerHigh">#FFE8E8EC</color>
+    <color name="lt_surfaceContainerHighest">#FFE2E2E6</color>
+
+    <!-- dark -->
+    <color name="dk_primary">#FF9ECAFF</color>
+    <color name="dk_onPrimary">#FF003258</color>
+    <color name="dk_primaryContainer">#FF00497D</color>
+    <color name="dk_onPrimaryContainer">#FFD1E4FF</color>
+    <color name="dk_secondary">#FFBBC7DB</color>
+    <color name="dk_onSecondary">#FF253140</color>
+    <color name="dk_secondaryContainer">#FF3B4858</color>
+    <color name="dk_onSecondaryContainer">#FFD7E3F7</color>
+    <color name="dk_tertiary">#FF84CFFF</color>
+    <color name="dk_onTertiary">#FF00344C</color>
+    <color name="dk_tertiaryContainer">#FF004C6C</color>
+    <color name="dk_onTertiaryContainer">#FFC7E7FF</color>
+    <color name="dk_surface">#FF1A1C1E</color>
+    <color name="dk_onSurface">#FFE2E2E6</color>
+    <color name="dk_surfaceVariant">#FF43474E</color>
+    <color name="dk_onSurfaceVariant">#FFC3C7CF</color>
+    <color name="dk_outline">#FF8D9199</color>
+    <color name="dk_surfaceContainerLowest">#FF0C0E11</color>
+    <color name="dk_surfaceContainerLow">#FF1A1C1E</color>
+    <color name="dk_surfaceContainer">#FF1E2022</color>
+    <color name="dk_surfaceContainerHigh">#FF282A2D</color>
+    <color name="dk_surfaceContainerHighest">#FF333538</color>
 </resources>

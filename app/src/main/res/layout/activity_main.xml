@@ -36,12 +36,18 @@
                 android:id="@+id/btn_rate"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:minWidth="0dp"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
                 android:text="rate" />
 
             <Button
                 android:id="@+id/btn_lyr"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:minWidth="0dp"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
                 android:text="lyr" />
 
             <androidx.mediarouter.app.MediaRouteButton
@@ -54,7 +60,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_vertical"
-                android:paddingStart="8dp" />
+                android:paddingStart="8dp"
+                android:textStyle="bold" />
 
         </LinearLayout>
 

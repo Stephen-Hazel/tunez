@@ -39,7 +39,8 @@
             android:layout_height="wrap_content"
             android:text="delete"
             android:textColor="#FFFF0000"
-            android:textStyle="bold" />
+            android:textStyle="bold"
+            app:backgroundTint="#FFFFEB3B" />
 
     </LinearLayout>
 
