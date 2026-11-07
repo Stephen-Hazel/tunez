@@ -27,17 +27,20 @@ SHazTunez (tunez) is a personal Android music player for two users (Annie and St
 
 This is a **single-Activity, single-file app**. Nearly all logic lives in `app/src/main/java/app/shaz/tunez/MainActivity.kt`. There are no fragments, ViewModels, repositories, or services — everything is inline.
 
-**Music files on device** (`/Music/tunez/`): mp3s sit in this directory
-or any (non-hidden) subdirectory of it; songs are tracked as paths
-relative to it (`song.mp3`, `sub/song.mp3`). Folders are just for
-organizing - each file's rating tag is suffixed on the filename, so
-re-rating a song is just a rename in place (never moves folders). The
+**Music files on device** (`/Music/tunez/`): songs (`.mp3`, `.wav`,
+`.flac` - `SONG_EXTS`) sit in this directory or any (non-hidden)
+subdirectory of it; songs are tracked as paths relative to it
+(`song.mp3`, `sub/song.flac`). Folders are just for organizing - each
+file's rating tag is suffixed on the filename, so re-rating a song is
+just a rename in place (never moves folders, keeps the extension). The
 filename helpers only look at the part after the last `/`; `splitfn`
-appends the subdir path onto the middle (`x`) field for display. A file is rated when its name (sans `.mp3`)
-contains ` - ` (space-dash-space, `isRated`); the rating is whatever
-follows the last ` - `. The other fields may be joined by bare `-` or by
-` - `, so a rating is never stripped - rerating to `new` writes ` - new`.
-Files with no ` - ` at all go in the `new` bucket (`UNRATED`). There's no fixed rating list:
+appends the subdir path onto the middle (`x`) field for display, with a
+leading `/` (`1976 High Voltage /Live/Encores`). A file is rated when
+its name (sans extension) contains ` - ` (space-dash-space, `isRated`);
+the rating is whatever follows the last ` - `. The other fields may be
+joined by bare `-` or by ` - `, so a rating is never stripped -
+rerating to `new` writes ` - new`. Files with no ` - ` at all go in the
+`new` bucket (`UNRATED`). There's no fixed rating list:
 `RATINGS` is rebuilt by `MusicService.reRate ()` from the distinct
 suffixes on the files (plus `new` only if unrated songs exist), after the
 scan and after every rerate/delete, so a rating vanishes with its last
@@ -50,8 +53,9 @@ always last). The rate popup has a top-right close button.
 start, `resume ()` if the service already had a playlist). Toggling a
 rating checkbox or shuf calls `rePlay (false)` - list rebuilt, first song
 loaded but paused. The fab icon flips play/pause via `onPlayState`.
+If no picks are saved at startup, every rating gets picked.
 
-**Filename format** (required): `group - year album song# - title - rating.mp3`
+**Filename format** (required): `group - year album song# - title - rating.mp3` (or `.wav`/`.flac`)
 
 **Key in-memory state:**
 - `pick` — which dirs are selected (checkboxes)

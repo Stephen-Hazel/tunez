@@ -139,7 +139,7 @@ class MusicService: Service ()
    private var callback: PlaybackCallback? = null
 
    private var mplay: MediaPlayer? = null
-   var mp3 = mutableListOf<FNList> ()
+   var mp3 = mutableListOf<FNList> ()     // all our songs (wav,flac too)
        private set
    var path = ""
        private set
@@ -296,7 +296,7 @@ class MusicService: Service ()
       meta.putString (CastMeta.KEY_ARTIST, fnt.grp)
      val mi  = MediaInfo.Builder (url)
                   .setStreamType  (MediaInfo.STREAM_TYPE_BUFFERED)
-                  .setContentType ("audio/mpeg")
+                  .setContentType (songMime (songFile))
                   .setMetadata    (meta)
                   .build ()
       return MediaQueueItem.Builder (mi).build ()
@@ -720,13 +720,18 @@ class MusicService: Service ()
      val root = File (path)
      val fns  = root.walk ()
                    .onEnter { it == root || ! it.name.startsWith (".") }
-                   .filter  { it.isFile && it.name.endsWith (".mp3") }
+                   .filter  { it.isFile && isSong (it.name) }
                    .map     { it.relativeTo (root).path }
                    .toList  ().sorted ()
       fns.groupBy { splitfn (it).dir }.toSortedMap ().forEach { (d, ls) ->
          mp3.add (FNList (d, ls.toMutableList ()))
       }
       reRate ()
+   // nothing picked (fresh install, or everything unticked)? pick it all
+      if (pick.isEmpty ()) {
+         pick.addAll (RATINGS)
+         savePrefs ()
+      }
       mediaSession = MediaSessionCompat (this, "TunezSession").apply {
          setCallback (object: MediaSessionCompat.Callback ()
          {  override fun onPlay ()

@@ -97,7 +97,7 @@ class LocalHttpServer (private val basePath: String) {
                           ?: (fileLen - 1)
             wanted = end - start + 1
             out.write (("HTTP/1.1 206 Partial Content\r\n" +
-               "Content-Type:   audio/mpeg\r\n" +
+               "Content-Type:   ${songMime (file.name)}\r\n" +
                "Content-Length: $wanted\r\n" +
                "Content-Range:  bytes $start-$end/$fileLen\r\n" +
                "Accept-Ranges:  bytes\r\n\r\n").toByteArray ())
@@ -106,7 +106,7 @@ class LocalHttpServer (private val basePath: String) {
          else {
             wanted = fileLen
             out.write (("HTTP/1.1 200 OK\r\n" +
-               "Content-Type:   audio/mpeg\r\n" +
+               "Content-Type:   ${songMime (file.name)}\r\n" +
                "Content-Length: $fileLen\r\n" +
                "Accept-Ranges:  bytes\r\n\r\n").toByteArray ())
             sent = file.inputStream ().use { stream (it, out, 0L, wanted) }

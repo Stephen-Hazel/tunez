@@ -64,24 +64,47 @@ fun baseName (fn: String): String  { return fn.substringAfterLast ("/") }
 fun subDir   (fn: String): String  { return fn.substringBeforeLast ("/", "") }
 
 
+// song file types we play
+val SONG_EXTS = listOf (".mp3", ".wav", ".flac")
+
+fun songExt (fn: String): String
+// ".mp3" etc as it's actually spelled on the file (case kept)
+{  val b = baseName (fn)
+   return SONG_EXTS.firstOrNull { b.endsWith (it, ignoreCase = true) }
+             ?.let { b.substring (b.length - it.length) } ?: ""
+}
+
+fun isSong (fn: String): Boolean  { return songExt (fn).isNotEmpty () }
+
+fun stripExt (fn: String): String
+{  return baseName (fn).dropLast (songExt (fn).length)
+}
+
+fun songMime (fn: String): String
+{  return when (songExt (fn).lowercase ()) {
+      ".flac" -> "audio/flac"
+      ".wav"  -> "audio/wav"
+      else    -> "audio/mpeg"
+   }
+}
+
+
 fun rawRating (fn: String): String
-// whatever's after the last " - " (sans .mp3), rating or not
-{  return baseName (fn).removeSuffix (".mp3").substringAfterLast (" - ")
-                                                                 .trim ()
+// whatever's after the last " - " (sans .mp3 etc), rating or not
+{  return stripExt (fn).substringAfterLast (" - ").trim ()
 }
 
 
 fun isRated (fn: String): Boolean
 // the rating always hangs off a " - " (spaces n all) - no " - " = unrated
-{  return baseName (fn).removeSuffix (".mp3").contains (" - ")
+{  return stripExt (fn).contains (" - ")
 }
 
 
 fun splitfn (fn: String): FNTitle
 // unrated files keep their last segment as title n go in UNRATED bucket
-// any subdir(s) get tacked onto the middle bit (x)
-{ var s = baseName (fn)
-   s = substr (s, 0, s.length-4)
+// any subdir(s) get tacked onto the middle bit (x) as " /sub1/sub2"
+{ var s = stripExt (fn)
   var d = UNRATED
    if (isRated (fn)) {
       d = s.substringAfterLast (" - ").trim ()
@@ -105,7 +128,7 @@ fun splitfn (fn: String): FNTitle
       x = ""
    }
   val sd = subDir (fn).replace ("_", " ")
-   if (sd.isNotEmpty ())  x = "$x $sd".trim ()
+   if (sd.isNotEmpty ())  x = "$x /$sd".trim ()
    return FNTitle (d, g, x, t)
 }
 
@@ -129,12 +152,13 @@ fun renameRating (fn: String, rating: String): String
 // (unrated files just get the rating tacked on the end)
 // the file stays in whatever subdir it's in
 {  val dir  = subDir (fn).let { if (it.isEmpty ())  ""  else  "$it/" }
-  val base = baseName (fn).removeSuffix (".mp3")
-   if (! isRated (fn))  return "$dir${base.trimEnd ()} - $rating.mp3"
+  val ext  = songExt (fn)
+  val base = stripExt (fn)
+   if (! isRated (fn))  return "$dir${base.trimEnd ()} - $rating$ext"
   val idx  = base.lastIndexOf (" - ")
    if (idx == -1)  return fn
   val prefix = base.substring (0, idx).trimEnd ()
-   return "$dir$prefix - $rating.mp3"
+   return "$dir$prefix - $rating$ext"
 }
 
 
