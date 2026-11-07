@@ -1,6 +1,15 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+}
+
+// upload key lives outside the repo - keystore.properties (git ignored)
+// points at it.  no file = release builds just come out unsigned
+val keyProps = Properties ().apply {
+    val f = rootProject.file ("keystore.properties")
+    if (f.exists ())  f.inputStream ().use { load (it) }
 }
 
 android {
@@ -17,8 +26,21 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        create ("release") {
+            if (keyProps.containsKey ("storeFile")) {
+                storeFile     = file (keyProps ["storeFile"] as String)
+                storePassword = keyProps ["storePassword"] as String
+                keyAlias      = keyProps ["keyAlias"] as String
+                keyPassword   = keyProps ["keyPassword"] as String
+            }
+        }
+    }
+
     buildTypes {
         release {
+            if (keyProps.containsKey ("storeFile"))
+                signingConfig = signingConfigs.getByName ("release")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
