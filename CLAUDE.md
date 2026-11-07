@@ -25,16 +25,20 @@ SHazTunez (tunez) is a personal Android music player for two users (Annie and St
 
 ## Architecture
 
-This is a **single-Activity, single-file app**. Nearly all logic lives in `app/src/main/java/tunez/shaz/app/MainActivity.kt`. There are no fragments, ViewModels, repositories, or services — everything is inline.
+This is a **single-Activity, single-file app**. Nearly all logic lives in `app/src/main/java/app/shaz/tunez/MainActivity.kt`. There are no fragments, ViewModels, repositories, or services — everything is inline.
 
 **Music files on device** (`/Music/tunez/`): all mp3s sit flat directly in
 this one directory — no subdirectories. Each file's rating tag is
 suffixed on the filename instead of being a folder name, so re-rating a
-song is just a rename. Valid ratings are the `RATINGS` list in
-`MainActivity.kt` (`a`, `b`, `aAn`, `bAn`, `aSt`, `bSt`, `new`, `sing`). A file
-whose last segment isn't in `RATINGS` (or has no rating at all) goes in
-the `new` bucket (`UNRATED`, itself also a valid rating); a new rating
-needs adding to `RATINGS`.
+song is just a rename. A file is rated when its name (sans `.mp3`) has 3+
+`-` (`isRated`); the rating is whatever follows the last one. Unrated
+files go in the `new` bucket (`UNRATED`). There's no fixed rating list:
+`RATINGS` is rebuilt by `MusicService.reRate ()` from the distinct
+suffixes on the files (plus `new` only if unrated songs exist), after the
+scan and after every rerate/delete, so a rating vanishes with its last
+song. New ratings come from renaming files outside the app. The top of
+the main screen shows one checkbox per rating, alphabetized, in a
+wrapping `ChipGroup`; the rate popup lists them the same way.
 
 **Filename format** (required): `group - year album song# - title - rating.mp3`
 

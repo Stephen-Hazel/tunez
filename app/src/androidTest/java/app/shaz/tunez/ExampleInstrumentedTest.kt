@@ -1,4 +1,4 @@
-package tunez.shaz.app
+package app.shaz.tunez
 
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -19,6 +19,6 @@ class ExampleInstrumentedTest {
     fun useAppContext() {
         // Context of the app under test.
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-        assertEquals("tunez.shaz.app", appContext.packageName)
+        assertEquals("app.shaz.tunez", appContext.packageName)
     }
 }

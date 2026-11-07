@@ -1,6 +1,6 @@
 // MainActivity.kt - tunez ui (most stuff happens in the service now)
 
-package tunez.shaz.app
+package app.shaz.tunez
 
 import android.Manifest
 import android.content.ComponentName
@@ -35,8 +35,8 @@ import com.google.android.gms.cast.framework.CastButtonFactory
 import com.google.android.gms.cast.framework.CastContext
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.snackbar.Snackbar
-import tunez.shaz.app.databinding.ActivityMainBinding
-import tunez.shaz.app.databinding.DialogRateBinding
+import app.shaz.tunez.databinding.ActivityMainBinding
+import app.shaz.tunez.databinding.DialogRateBinding
 
 
 data class FNList (
@@ -65,7 +65,8 @@ fun rawRating (fn: String): String
 
 
 fun isRated (fn: String): Boolean
-{  return RATINGS.contains (rawRating (fn))
+// group - year album song# - title - rating  (unrated has no last one)
+{  return fn.removeSuffix (".mp3").count { it == '-' } >= 3
 }
 
 
@@ -125,18 +126,13 @@ fun renameRating (fn: String, rating: String): String
 }
 
 
-val RATINGS = listOf ("a", "b", "aAn", "bAn", "aSt", "bSt", "new", "sing")
+// ratings are just whatever the song filenames have - MusicService fills
+val RATINGS = mutableSetOf<String> ()
 const val UNRATED = "new"
 
 
-fun aSplit (vals: List<String>): Pair<List<String>, List<String>>
-// row1 gets the a* values then sing, row2 the rest then new
-{  val row1 = vals.filter {   it.startsWith ("a") }.sorted () +
-              vals.filter { it == "sing" }
-  val row2 = vals.filter { ! it.startsWith ("a") &&
-                           it != "sing" && it != UNRATED }.sorted () +
-              vals.filter { it == UNRATED }
-   return Pair (row1, row2)
+fun sortedRatings (): List<String>
+{  return RATINGS.sortedWith (String.CASE_INSENSITIVE_ORDER)
 }
 
 
@@ -269,9 +265,7 @@ class MainActivity: AppCompatActivity (), PlaybackCallback
          s.setShuf (chk)
          s.rePlay ()
       }
-     val (dirs1, dirs2) = aSplit (s.mp3.map { it.dir })
-      fillCheckRow (b.loLin1, dirs1)
-      fillCheckRow (b.loLin2, dirs2)
+      fillCheckRow ()
       b.btnLyr.setOnClickListener { s.lyricsSearch () }
       b.btnRate.setOnClickListener { showRateDialog () }
       try {
@@ -287,38 +281,49 @@ class MainActivity: AppCompatActivity (), PlaybackCallback
    }
 
 
-   private fun fillCheckRow (row: LinearLayout, dirs: List<String>)
+   private fun fillCheckRow ()
+   // a checkbox per rating, alphabetized, wrapping to new lines as needed
    {  val s = svc ?: return
-      row.removeAllViews ()
-      dirs.forEach { d ->
+      b.loPick.removeAllViews ()
+      sortedRatings ().forEach { d ->
         val cb = CheckBox (this)
          cb.text = d
          cb.id = View.generateViewId ()
          cb.isChecked = s.pick.contains (d)
-         cb.layoutParams = LinearLayout.LayoutParams (
-            LinearLayout.LayoutParams.WRAP_CONTENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT)
          cb.setOnCheckedChangeListener { cb, chk ->
             if (chk)  s.addPick    (cb.text as String)
             else      s.removePick (cb.text as String)
             s.rePlay ()
          }
-         row.addView (cb)
+         b.loPick.addView (cb)
       }
    }
 
 
-   private fun fillRatingRow (row: LinearLayout, ratings: List<String>,
-                              cur: String)
+   private fun rateTo (r: String)
+   // rerate the playing song n redo its row
    {  val s = svc ?: return
-      row.removeAllViews ()
-      val fg = MaterialColors.getColor (
-         row, android.R.attr.textColorPrimary, Color.BLACK)
-      ratings.forEach { r ->
+     val newFn = s.rateSong (r)
+      if (newFn != null) {
+        val tr = b.loTbl.getChildAt (s.ppos) as? TableRow
+        val tv = tr?.getChildAt (0) as? TextView
+         tv?.text = fmtfn (newFn)
+         fillCheckRow ()
+         rateDialog?.dismiss ()
+      }
+   }
+
+
+   private fun fillRatingList (list: LinearLayout, cur: String)
+   // alphabetized ratings, one per line, current one grayed out
+   {  list.removeAllViews ()
+     val fg = MaterialColors.getColor (
+        list, android.R.attr.textColorPrimary, Color.BLACK)
+      sortedRatings ().forEach { r ->
         val tv = TextView (this)
          tv.text = r
          tv.textSize = 20f
-         tv.setPadding (28, 20, 28, 20)
+         tv.setPadding (dp (12), dp (8), dp (12), dp (8))
          if (r == cur) {
             tv.setTextColor (Color.GRAY)
             tv.isClickable = false
@@ -328,33 +333,23 @@ class MainActivity: AppCompatActivity (), PlaybackCallback
             tv.setTextColor (fg)
             tv.isClickable = true
             tv.isFocusable = true
-            tv.setOnClickListener {
-              val newFn = s.rateSong (r)
-               if (newFn != null) {
-                 val tr  = b.loTbl.getChildAt (s.ppos) as? TableRow
-                 val tv2 = tr?.getChildAt (0) as? TextView
-                  tv2?.text = fmtfn (newFn)
-                  rateDialog?.dismiss ()
-               }
-            }
+            tv.setOnClickListener { rateTo (r) }
          }
-         row.addView (tv)
+         list.addView (tv)
       }
    }
 
 
    private fun showRateDialog ()
-   // "rate" button pops the set-rating buttons plus a delete button
+   // "rate" button pops the rating list plus a delete button
    {  val s = svc ?: return
       if (s.song.isEmpty ())  return
      val dlgB = DialogRateBinding.inflate (layoutInflater)
-     val cur  = splitfn (s.song).dir
-     val (row1, row2) = aSplit (RATINGS)
-      fillRatingRow (dlgB.loRate1, row1, cur)
-      fillRatingRow (dlgB.loRate2, row2, cur)
+      fillRatingList (dlgB.loRate, splitfn (s.song).dir)
       dlgB.btnDelete.setOnClickListener {
          rateDialog?.dismiss ()
          s.deleteSong ()
+         fillCheckRow ()
       }
       rateDialog = AlertDialog.Builder (this)
          .setView (dlgB.root)

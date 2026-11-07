@@ -1,7 +1,7 @@
 // MusicService.kt - need a "foreground service" so we can pop lyrics and
 //    do, uhh, a bunch of stuff while music =still= plays
 
-package tunez.shaz.app
+package app.shaz.tunez
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -64,8 +64,8 @@ import java.util.concurrent.TimeUnit
 
 
 // setup play/pause/skip api
-const val ACTION_PLAY_PAUSE = "tunez.shaz.app.PLAY_PAUSE"
-const val ACTION_NEXT       = "tunez.shaz.app.NEXT"
+const val ACTION_PLAY_PAUSE = "app.shaz.tunez.PLAY_PAUSE"
+const val ACTION_NEXT       = "app.shaz.tunez.NEXT"
 const val CHANNEL_ID        = "tunez_playback"
 const val NOTIF_ID          = 1
 const val BT_WATCHDOG_POLL_MS    = 500L
@@ -679,41 +679,19 @@ class MusicService: Service ()
       shuf = p.getBoolean   ("shuf", true)
       pick = p.getStringSet ("pick", emptySet ())?.toMutableList () ?:
                                                                 mutableListOf ()
-   // one-time rating scheme migration: _a/_b/An/St -> a/b/aAn/aSt
-     val ratingMigration = mapOf (
-        "_a" to "a", "_b" to "b", "An" to "aAn", "St" to "aSt")
-      pick = pick.map { ratingMigration [it] ?: it }.distinct ()
-                                                            .toMutableList ()
    // and our done list so we don't hear ANY repeats
       done = try {
          File ("${File(path).parent}/done.txt").readLines ().toMutableList ()
       }
       catch (e: Exception) { mutableListOf () }
-   // ok, list off every mp3, migrate old ratings, n bucket by suffix
+   // ok, list off every mp3 n bucket by rating suffix
      val mus = File (path).listFiles () ?: emptyArray ()
      val fns = mus.filter { it.isFile && it.getName ().endsWith (".mp3") }
-                  .map { f ->
-                    val old  = f.getName ()
-                    val newR = ratingMigration [rawRating (old)]
-                     if (newR == null)  old
-                     else {
-                       val newName = renameRating (old, newR)
-                        if (File (path, newName).exists ()) {
-                           Log.w ("TunezRate",
-                                  "migration skip, exists: $newName")
-                           old
-                        }
-                        else if (f.renameTo (File (path, newName)))
-                              newName
-                        else {
-                           Log.w ("TunezRate", "migration rename failed: $old")
-                           old
-                        }
-                     }
-                  }.sorted ()
+                  .map { it.getName () }.sorted ()
       fns.groupBy { splitfn (it).dir }.toSortedMap ().forEach { (d, ls) ->
          mp3.add (FNList (d, ls.toMutableList ()))
       }
+      reRate ()
       mediaSession = MediaSessionCompat (this, "TunezSession").apply {
          setCallback (object: MediaSessionCompat.Callback ()
          {  override fun onPlay ()
@@ -1170,25 +1148,16 @@ class MusicService: Service ()
 
 
    fun setRating (up: Boolean)
-   // thumbs up promotes b/bAn/bSt -> a/aAn/aSt, thumbs down demotes back
+   // thumbs up promotes b -> a, thumbs down demotes back
    {  if (song.isEmpty ()) {
          Dbg.log ("TunezRate", "setRating: no song playing, ignored")
          return
       }
      val cur = splitfn (song).dir
      val bucket =
-        if (up) when (cur) {
-           "b"   -> "a"
-           "bAn" -> "aAn"
-           "bSt" -> "aSt"
-           else  -> null
-        }
-        else when (cur) {
-           "a"   -> "b"
-           "aAn" -> "bAn"
-           "aSt" -> "bSt"
-           else  -> null
-        }
+        if      (up   && cur == "b")  "a"
+        else if (! up && cur == "a")  "b"
+        else                          null
       if (bucket == null) {
          Dbg.log ("TunezRate", "setRating: no mapping for up=$up cur=$cur " +
                   "song=$song")
@@ -1197,6 +1166,14 @@ class MusicService: Service ()
      val result = rateSong (bucket)
       Dbg.log ("TunezRate", "setRating: up=$up cur=$cur bucket=$bucket " +
                "result=$result")
+   }
+
+
+   private fun reRate ()
+   // ratings are the distinct suffixes on our songs (new if any unrated)
+   {  mp3.removeAll { it.fn.isEmpty () }
+      RATINGS.clear ()
+      RATINGS.addAll (mp3.map { it.dir })
    }
 
 
@@ -1224,6 +1201,7 @@ class MusicService: Service ()
          mp3.add (bucket)
       }
       bucket.fn.add (newFn)
+      reRate ()
       return newFn
    }
 
@@ -1237,6 +1215,7 @@ class MusicService: Service ()
       catch (e: Exception) { }
      val d = splitfn (oldFn).dir
       mp3.find { it.dir == d }?.fn?.remove (oldFn)
+      reRate ()
       Dbg.log ("TunezRate", "deleted $oldFn")
       next ()
       return true

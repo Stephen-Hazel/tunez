@@ -1,4 +1,4 @@
-package tunez.shaz.app
+package app.shaz.tunez
 // cuz casting needs a http connection sigh
 
 import android.util.Log

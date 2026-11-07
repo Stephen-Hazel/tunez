@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "tunez.shaz.app"
+    namespace = "app.shaz.tunez"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "tunez.shaz.app"
+        applicationId = "app.shaz.tunez"
         minSdk = 24
         targetSdk = 36
         versionCode = 1

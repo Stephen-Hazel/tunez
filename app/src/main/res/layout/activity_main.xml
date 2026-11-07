@@ -14,17 +14,12 @@
         android:orientation="vertical"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
-        <LinearLayout
-            android:id="@+id/lo_lin1"
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/lo_pick"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal" />
-
-        <LinearLayout
-            android:id="@+id/lo_lin2"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal" />
+            app:chipSpacingHorizontal="0dp"
+            app:chipSpacingVertical="0dp" />
 
         <LinearLayout
             android:layout_width="match_parent"
