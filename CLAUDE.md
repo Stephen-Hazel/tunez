@@ -38,7 +38,13 @@ suffixes on the files (plus `new` only if unrated songs exist), after the
 scan and after every rerate/delete, so a rating vanishes with its last
 song. New ratings come from renaming files outside the app. The top of
 the main screen shows one checkbox per rating, alphabetized, in a
-wrapping `ChipGroup`; the rate popup lists them the same way.
+wrapping `ChipGroup`; the rate popup lists them the same way (`new`
+always last). The rate popup has a top-right close button.
+
+**Play/pause:** opening the app starts playing (`rePlay ()` on a cold
+start, `resume ()` if the service already had a playlist). Toggling a
+rating checkbox or shuf calls `rePlay (false)` - list rebuilt, first song
+loaded but paused. The fab icon flips play/pause via `onPlayState`.
 
 **Filename format** (required): `group - year album song# - title - rating.mp3`
 

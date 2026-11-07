@@ -23,8 +23,8 @@ import android.text.Spannable
 import android.text.SpannableString
 import android.text.style.StyleSpan
 import android.view.View
+import android.view.ViewGroup
 import android.widget.CheckBox
-import android.widget.LinearLayout
 import android.widget.TableRow
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
@@ -132,7 +132,10 @@ const val UNRATED = "new"
 
 
 fun sortedRatings (): List<String>
-{  return RATINGS.sortedWith (String.CASE_INSENSITIVE_ORDER)
+// alphabetized, but new always goes last
+{  return RATINGS.filter { it != UNRATED }
+                 .sortedWith (String.CASE_INSENSITIVE_ORDER) +
+          RATINGS.filter { it == UNRATED }
 }
 
 
@@ -142,16 +145,21 @@ class MainActivity: AppCompatActivity (), PlaybackCallback
    private var selRow: TableRow? = null
    private var sentToPerms = false
    private var rateDialog: AlertDialog? = null
+   private var startPlay = false     // fresh launch? then get playin
 
    private val conn = object: ServiceConnection
    {  override fun onServiceConnected (name: ComponentName, binder: IBinder)
       {  svc = (binder as MusicService.MusicBinder).getService ()
          svc!!.setCallback (this@MainActivity)
          initUi ()
+         onPlayState (svc!!.isPlaying ())
          if (svc!!.play.isEmpty () && svc!!.pick.isNotEmpty ())
             svc!!.rePlay ()
-         else if (svc!!.play.isNotEmpty ())
+         else if (svc!!.play.isNotEmpty ()) {
             onPlaylistReady (svc!!.play)
+            if (startPlay)  svc!!.resume ()
+         }
+         startPlay = false
       }
       override fun onServiceDisconnected (name: ComponentName) { svc = null }
    }
@@ -225,6 +233,17 @@ class MainActivity: AppCompatActivity (), PlaybackCallback
    }
 
 
+   override fun onPlayState (playing: Boolean)
+   // fab shows what a tap would do
+   {  runOnUiThread {
+         b.fab.setImageResource (if (playing)
+                                    R.drawable.ic_pause_24
+                                 else
+                                    R.drawable.ic_play_24)
+      }
+   }
+
+
    override fun onAlbumArtChanged (art: Bitmap?)
    {  runOnUiThread {
          if (art != null) {
@@ -263,7 +282,7 @@ class MainActivity: AppCompatActivity (), PlaybackCallback
       b.cbShuf.isChecked = s.shuf
       b.cbShuf.setOnCheckedChangeListener { _, chk ->
          s.setShuf (chk)
-         s.rePlay ()
+         s.rePlay (false)
       }
       fillCheckRow ()
       b.btnLyr.setOnClickListener { s.lyricsSearch () }
@@ -272,12 +291,7 @@ class MainActivity: AppCompatActivity (), PlaybackCallback
          CastButtonFactory.setUpMediaRouteButton (this, b.btnCast)
       }
       catch (e: Exception) { }
-      b.fab.setOnClickListener { view ->
-        val playing = s.togglePlayPause ()
-         Snackbar.make (view, if (playing) "Playing" else "Paused",
-                        Snackbar.LENGTH_LONG)
-                 .setAction ("Action", null).setAnchorView (R.id.fab).show ()
-      }
+      b.fab.setOnClickListener { onPlayState (s.togglePlayPause ()) }
    }
 
 
@@ -293,7 +307,7 @@ class MainActivity: AppCompatActivity (), PlaybackCallback
          cb.setOnCheckedChangeListener { cb, chk ->
             if (chk)  s.addPick    (cb.text as String)
             else      s.removePick (cb.text as String)
-            s.rePlay ()
+            s.rePlay (false)
          }
          b.loPick.addView (cb)
       }
@@ -314,8 +328,8 @@ class MainActivity: AppCompatActivity (), PlaybackCallback
    }
 
 
-   private fun fillRatingList (list: LinearLayout, cur: String)
-   // alphabetized ratings, one per line, current one grayed out
+   private fun fillRatingList (list: ViewGroup, cur: String)
+   // ratings wrapped in as many rows as needed, current one grayed out
    {  list.removeAllViews ()
      val fg = MaterialColors.getColor (
         list, android.R.attr.textColorPrimary, Color.BLACK)
@@ -346,6 +360,7 @@ class MainActivity: AppCompatActivity (), PlaybackCallback
       if (s.song.isEmpty ())  return
      val dlgB = DialogRateBinding.inflate (layoutInflater)
       fillRatingList (dlgB.loRate, splitfn (s.song).dir)
+      dlgB.btnClose.setOnClickListener { rateDialog?.dismiss () }
       dlgB.btnDelete.setOnClickListener {
          rateDialog?.dismiss ()
          s.deleteSong ()
@@ -446,6 +461,7 @@ class MainActivity: AppCompatActivity (), PlaybackCallback
 
    override fun onCreate (state: Bundle?)
    {  super.onCreate (state)
+      startPlay = (state == null)    // not on a rotate n such
       b = ActivityMainBinding.inflate (layoutInflater)
       setContentView (b.root)
       checkPerms ()

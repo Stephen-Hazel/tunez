@@ -33,16 +33,16 @@
                 android:text="shuf" />
 
             <Button
-                android:id="@+id/btn_lyr"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="lyr" />
-
-            <Button
                 android:id="@+id/btn_rate"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="rate" />
+
+            <Button
+                android:id="@+id/btn_lyr"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="lyr" />
 
             <androidx.mediarouter.app.MediaRouteButton
                 android:id="@+id/btn_cast"
@@ -104,6 +104,8 @@
         android:layout_marginEnd="@dimen/fab_margin"
         android:layout_marginBottom="16dp"
         android:contentDescription="@string/playpause"
-        android:src="@drawable/outline_music_cast_24" />
+        app:fabCustomSize="75dp"
+        app:maxImageSize="32dp"
+        android:src="@drawable/ic_play_24" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

@@ -125,6 +125,7 @@ interface PlaybackCallback {
    fun onPlaylistReady    (play: List<String>)
    fun onSongChanged      (removedPos: Int, newPpos: Int)
    fun onAlbumArtChanged  (art: Bitmap?)
+   fun onPlayState        (playing: Boolean)
    fun onCastVolumeChanged (vol: Double)
 }
 
@@ -210,9 +211,21 @@ class MusicService: Service ()
    }
 
    fun setCallback (cb: PlaybackCallback?) { callback = cb }
-   fun addPick    (dir: String) { if (! pick.contains (dir))  pick.add (dir) }
-   fun removePick (dir: String) { pick.remove (dir) }
-   fun setShuf    (v: Boolean)  { shuf = v }
+   fun addPick    (dir: String)
+   {  if (! pick.contains (dir))  pick.add (dir)
+      savePrefs ()
+   }
+   fun removePick (dir: String) { pick.remove (dir);  savePrefs () }
+   fun setShuf    (v: Boolean)  { shuf = v;           savePrefs () }
+
+
+   private fun savePrefs ()
+   // store shuf,dir picks right away so a process kill can't lose em
+   {  getSharedPreferences ("prf", MODE_PRIVATE).edit ()
+         .putBoolean   ("shuf", shuf)
+         .putStringSet ("pick", pick.toSet ())
+         .apply ()
+   }
 
    fun isCasting () = castSession?.isConnected == true
 
@@ -303,7 +316,7 @@ class MusicService: Service ()
       }
    }
 
-   private fun loadCastQueue ()
+   private fun loadCastQueue (autoplay: Boolean = true)
    // load current+2-ahead as a real cast queue (not a one-off load()) so
    // the receiver itself knows what "next" means - lets "Hey Google, skip"
    // spoken straight at the cast device (never reaches this app at all)
@@ -338,6 +351,9 @@ class MusicService: Service ()
          pending?.setResultCallback ({ r ->
             castQueueLoadPending = false
             if (r.status.isSuccess) {
+            // queueLoad always starts the receiver - hold it if we're not
+            // supposed to be playin yet (checkbox/shuf rePlay)
+               if (! autoplay)  cs.remoteMediaClient?.pause ()
                lastAdvancedItemId = -1
                castSkipInFlight = false
                castAdvanceWasSkip = false
@@ -630,6 +646,21 @@ class MusicService: Service ()
          Dbg.log ("TunezCast", "session suspended reason=$r") }
    }
 
+   fun isPlaying (): Boolean
+   // while casting, mplay is intentionally paused - ask the remote player
+   {  return if (isCasting ())
+                castSession?.remoteMediaClient?.mediaStatus
+                   ?.playerState == MediaStatus.PLAYER_STATE_PLAYING
+             else  mplay?.isPlaying == true
+   }
+
+
+   fun resume ()
+   // start playin if we aren't already (app just got opened)
+   {  if (song.isNotEmpty () && ! isPlaying ())  togglePlayPause ()
+   }
+
+
    fun togglePlayPause (): Boolean
    {  val wasPlaying: Boolean
       if (isCasting ()) {
@@ -899,11 +930,7 @@ class MusicService: Service ()
       mplay = null
       mediaSession.release ()
 
-   // store our shuf,dir picks for next time - done/skip are already
-   // saved to disk as they happen, no flush needed here
-     val e = getSharedPreferences ("prf", MODE_PRIVATE).edit ()
-      e.putBoolean   ("shuf", shuf).commit ()
-      e.putStringSet ("pick", pick.toSet ()).commit ()
+   // shuf,dir picks n done/skip are all saved as they happen
       try {
          CastContext.getSharedInstance (this)
             .sessionManager.removeSessionManagerListener (
@@ -968,7 +995,8 @@ class MusicService: Service ()
    }
 
 
-   fun rePlay ()
+   fun rePlay (start: Boolean = true)
+   // start false = load up the first song but sit paused
    {  if (mplay?.isPlaying == true)  mplay?.stop ()
       mplay?.reset ()
       play.clear ()
@@ -1016,12 +1044,12 @@ class MusicService: Service ()
       ppos = 0
       song = play [ppos]
       loadAlbumArt ()
-      if (isCasting ())  loadCastQueue ()
+      if (isCasting ())  loadCastQueue (start)
       else {
          try {
             mplay?.setDataSource ("$path/$song")
             mplay?.prepare ()
-            mplay?.start ()
+            if (start)  mplay?.start ()
             mplay?.setOnCompletionListener { localErrorStreak = 0; next () }
          }
          catch (e: Exception) {
@@ -1330,13 +1358,10 @@ class MusicService: Service ()
 
    private fun updateMediaSession ()
    {  if (song.isEmpty ())  return
-   // while casting, mplay is intentionally paused - report the remote
-   // player's actual state instead, or the session always looks
-   // "paused" and the OS won't route volume keys to it
-     val playing = if (isCasting ())
-                      castSession?.remoteMediaClient?.mediaStatus
-                         ?.playerState == MediaStatus.PLAYER_STATE_PLAYING
-                   else  mplay?.isPlaying == true
+   // while casting report the remote player's actual state, or the
+   // session always looks "paused" n the OS won't route volume keys to it
+     val playing = isPlaying ()
+      callback?.onPlayState (playing)
      val state = if (playing)  PlaybackStateCompat.STATE_PLAYING
                  else           PlaybackStateCompat.STATE_PAUSED
       mediaSession.setPlaybackState (
