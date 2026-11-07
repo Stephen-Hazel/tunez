@@ -441,8 +441,15 @@ class MainActivity: AppCompatActivity (), PlaybackCallback
           != PackageManager.PERMISSION_GRANTED)
          ActivityCompat.requestPermissions (this,
             arrayOf (Manifest.permission.POST_NOTIFICATIONS), 1)
-   // no Music/tunez folder yet (or we lost access to it)?  go pick it
-      if (SongStore.saved (this) == null)  pickTree.launch (SongStore.HINT)
+   // no Music/tunez folder yet (or we lost access to it)?  our own big
+   // "pick folder" panel stays up til one gets picked
+      folderPanel (SongStore.saved (this) == null)
+   }
+
+
+   private fun folderPanel (on: Boolean)
+   {  b.loFolder.visibility = if (on)  View.VISIBLE  else  View.GONE
+      b.fab.visibility      = if (on)  View.GONE     else  View.VISIBLE
    }
 
 
@@ -451,6 +458,7 @@ class MainActivity: AppCompatActivity (), PlaybackCallback
    // got our folder - keep it for good n have the service rescan
       if (u != null) {
          SongStore.keep (this, u)
+         folderPanel (false)
          restartService ()
       }
    }
@@ -483,6 +491,7 @@ class MainActivity: AppCompatActivity (), PlaybackCallback
       startPlay = (state == null)    // not on a rotate n such
       b = ActivityMainBinding.inflate (layoutInflater)
       setContentView (b.root)
+      b.btnFolder.setOnClickListener { pickTree.launch (SongStore.HINT) }
       checkPerms ()
 
       try { CastContext.getSharedInstance (this) } catch (e: Exception) { }

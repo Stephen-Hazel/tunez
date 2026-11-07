@@ -103,6 +103,46 @@
 
     </LinearLayout>
 
+    <!-- shown til we've got our Music/tunez folder - covers everything -->
+    <LinearLayout
+        android:id="@+id/lo_folder"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="?android:attr/colorBackground"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="32dp"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text="Pick your tunez folder"
+            android:textSize="32sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:gravity="center"
+            android:text="Next screen: go to Music › tunez, then tap\nUse this folder and then Allow"
+            android:textSize="20sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_folder"
+            android:layout_width="match_parent"
+            android:layout_height="96dp"
+            android:layout_marginTop="40dp"
+            android:text="Pick folder"
+            android:textSize="28sp"
+            android:textStyle="bold" />
+
+    </LinearLayout>
+
         <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab"
         android:layout_width="wrap_content"
