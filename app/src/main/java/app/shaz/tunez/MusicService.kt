@@ -722,7 +722,8 @@ class MusicService: Service ()
                    .onEnter { it == root || ! it.name.startsWith (".") }
                    .filter  { it.isFile && isSong (it.name) }
                    .map     { it.relativeTo (root).path }
-                   .toList  ().sorted ()
+                   .toList  ()          // all listed before any renames
+                   .map     { tickFile (it) }.sorted ()
       fns.groupBy { splitfn (it).dir }.toSortedMap ().forEach { (d, ls) ->
          mp3.add (FNList (d, ls.toMutableList ()))
       }
@@ -1075,6 +1076,23 @@ class MusicService: Service ()
       updateMediaSession ()
       postNotification ()
       callback?.onPlaylistReady (play.toList ())
+   }
+
+
+   private fun tickFile (fn: String): String
+   // old style name?  rename it on disk to the ` style (n fix done to
+   // match).  if that can't happen we just keep the old name
+   {  val tn = tickName (fn)
+      if (tn == fn)  return fn
+      if (File (path, tn).exists () ||
+          ! File (path, fn).renameTo (File (path, tn))) {
+         Dbg.log ("TunezRate", "tick rename failed: $fn -> $tn")
+         return fn
+      }
+      Dbg.log ("TunezRate", "tick renamed: $fn -> $tn")
+     val i = done.indexOf (fn)
+      if (i >= 0) { done [i] = tn;  saveDone () }
+      return tn
    }
 
 

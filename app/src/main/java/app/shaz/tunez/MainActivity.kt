@@ -90,76 +90,87 @@ fun songMime (fn: String): String
 }
 
 
-fun rawRating (fn: String): String
-// whatever's after the last " - " (sans .mp3 etc), rating or not
-{  return stripExt (fn).substringAfterLast (" - ").trim ()
+// song filenames are  group ` middle ` title ` rating.ext  (3 fields = no
+// middle, 2 = just title n rating).  _ shows as a space
+const val SEP = "`"
+
+fun tickName (fn: String): String
+// old style "group-middle-title - rating.ext" (or no " - rating" at all)
+// -> the ` style, staying in its subdir.  ` style names come back as is
+{  if (baseName (fn).contains (SEP))  return fn
+  val dir = subDir (fn).let { if (it.isEmpty ())  ""  else  "$it/" }
+  var s   = stripExt (fn)
+  var r   = UNRATED
+   if (s.contains (" - ")) {
+      r = s.substringAfterLast (" - ").trim ().ifEmpty { UNRATED }
+      s = s.substringBeforeLast (" - ")
+   }
+  val f = s.indexOf     ("-")
+  val l = s.lastIndexOf ("-")
+  val g: String
+  val x: String
+  val t: String
+   if (f == -1)  { g = "";  x = "";  t = s.trim () }
+   else {
+      g = substr (s, 0, f).trim ()
+      x = if (f == l)  ""  else  substr (s, f+1, l-f-1).trim ()
+      t = s.substring (l+1).trim ()
+   }
+  val parts = listOf (g, x).filter { it.isNotEmpty () } + listOf (t, r)
+   return dir + parts.joinToString (" $SEP ") + songExt (fn)
 }
 
 
-fun isRated (fn: String): Boolean
-// the rating always hangs off a " - " (spaces n all) - no " - " = unrated
-{  return stripExt (fn).contains (" - ")
+fun tickParts (fn: String): List<String>
+// the ` fields, trimmed (old style names get converted first)
+{  return stripExt (tickName (fn)).split (SEP).map { it.trim () }
 }
 
 
 fun splitfn (fn: String): FNTitle
-// unrated files keep their last segment as title n go in UNRATED bucket
-// any subdir(s) get tacked onto the middle bit (x) as " /sub1/sub2"
-{ var s = stripExt (fn)
-  var d = UNRATED
-   if (isRated (fn)) {
-      d = s.substringAfterLast (" - ").trim ()
-      s = s.substringBeforeLast (" - ")
-   }
-   s = s.replace ("_", " ")
-  val f = s.indexOf     ("-")
-  val l = s.lastIndexOf ("-")
-  var g: String
-  var t: String
-  var x: String
-   if (f != -1) {
-      g = substr (s, 0, f).trim ()
-      t = s.substring (l+1).trim ()
-      if (f == l)  x = ""
-      else         x = substr (s, f+1, l-f-1).trim ()
-   }
-   else {
-      g = ""
-      t = s.trim ()
-      x = ""
-   }
-  val sd = subDir (fn).replace ("_", " ")
+// rating is always the last field, title the one before it, group the
+// first n anything between is the middle bit (x)
+// any subdir(s) get tacked onto x as " /sub1/sub2"
+{ val p = tickParts (fn)
+  val n = p.size
+  val d = p [n-1].ifEmpty { UNRATED }
+  val t = if (n >= 2)  p [n-2]  else  ""
+  val g = if (n >= 3)  p [0]    else  ""
+  var x = if (n >= 4)  p.subList (1, n-2).joinToString (" ")  else  ""
+  val sd = subDir (fn)
    if (sd.isNotEmpty ())  x = "$x /$sd".trim ()
-   return FNTitle (d, g, x, t)
+   return FNTitle (d, g.replace ("_", " "), x.replace ("_", " "),
+                      t.replace ("_", " "))
 }
 
 
 fun fmtfn (fn: String): SpannableString
-// i just want some bold...
+// i just want some bold... title n rating, by position (not by searchin
+// for the text - a rating like "a" would just bold the 1st a it found)
 { val fnt = splitfn (fn)
-  val ss  = SpannableString ("${fnt.grp}  ${fnt.ttl}  ${fnt.x}  ${fnt.dir}")
-  var b   = ss.indexOf (fnt.ttl)
-   if (b != -1)  ss.setSpan (StyleSpan (Typeface.BOLD), b, b + fnt.ttl.length,
-                             Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-   b = ss.indexOf (fnt.dir)
-   if (b != -1)  ss.setSpan (StyleSpan (Typeface.BOLD), b, b + fnt.dir.length,
-                             Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+  val pre = "${fnt.grp}  "
+  val mid = "  ${fnt.x}  "
+  val ss  = SpannableString (pre + fnt.ttl + mid + fnt.dir)
+  val tb  = pre.length
+  val db  = tb + fnt.ttl.length + mid.length
+   if (fnt.ttl.isNotEmpty ())
+      ss.setSpan (StyleSpan (Typeface.BOLD), tb, tb + fnt.ttl.length,
+                  Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+   if (fnt.dir.isNotEmpty ())
+      ss.setSpan (StyleSpan (Typeface.BOLD), db, db + fnt.dir.length,
+                  Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
    return ss
 }
 
 
 fun renameRating (fn: String, rating: String): String
-// swap the rating suffix on a filename, keeping everything before it
-// (unrated files just get the rating tacked on the end)
-// the file stays in whatever subdir it's in
-{  val dir  = subDir (fn).let { if (it.isEmpty ())  ""  else  "$it/" }
-  val ext  = songExt (fn)
-  val base = stripExt (fn)
-   if (! isRated (fn))  return "$dir${base.trimEnd ()} - $rating$ext"
-  val idx  = base.lastIndexOf (" - ")
-   if (idx == -1)  return fn
-  val prefix = base.substring (0, idx).trimEnd ()
-   return "$dir$prefix - $rating$ext"
+// swap the rating (last field), keeping everything before it - old style
+// names get converted along the way.  stays in whatever subdir it's in
+{  val tn  = tickName (fn)
+  val dir = subDir (tn).let { if (it.isEmpty ())  ""  else  "$it/" }
+  val pre = stripExt (tn).substringBeforeLast (SEP, "").trimEnd ()
+   if (pre.isEmpty ())  return "$dir$rating${songExt (tn)}"
+   return "$dir$pre $SEP $rating${songExt (tn)}"
 }
 
 

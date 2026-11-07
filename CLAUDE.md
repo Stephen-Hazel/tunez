@@ -33,15 +33,16 @@ subdirectory of it; songs are tracked as paths relative to it
 (`song.mp3`, `sub/song.flac`). Folders are just for organizing - each
 file's rating tag is suffixed on the filename, so re-rating a song is
 just a rename in place (never moves folders, keeps the extension). The
-filename helpers only look at the part after the last `/`; `splitfn`
-appends the subdir path onto the middle (`x`) field for display, with a
-leading `/` (`1976 High Voltage /Live/Encores`). A file is rated when
-its name (sans extension) contains ` - ` (space-dash-space, `isRated`);
-the rating is whatever follows the last ` - `. The other fields may be
-joined by bare `-` or by ` - `, so a rating is never stripped -
-rerating to `new` writes ` - new`. Files with no ` - ` at all go in the
-`new` bucket (`UNRATED`). There's no fixed rating list:
-`RATINGS` is rebuilt by `MusicService.reRate ()` from the distinct
+filename helpers only look at the part after the last `/`. Fields are
+split on `` ` `` (`SEP`) and trimmed: the last is always the rating, the
+one before it the title, the first the group, anything between is the
+middle (`x`) - 3 fields = no middle. `_` shows as a space. `splitfn`
+appends the subdir path onto `x` with a leading `/` (`1976 High Voltage
+/Live/Encores`). Old style names (`group-middle-title - rating.mp3`, or
+no ` - rating` = `new`) found at startup get renamed on disk to the
+`` ` `` style by `tickName`/`tickFile` (done.txt updated to match).
+Re-rating replaces the last field; unrated songs are written as
+`` ` new``. There's no fixed rating list: `RATINGS` is rebuilt by `MusicService.reRate ()` from the distinct
 suffixes on the files (plus `new` only if unrated songs exist), after the
 scan and after every rerate/delete, so a rating vanishes with its last
 song. New ratings come from renaming files outside the app. The top of
@@ -55,7 +56,7 @@ rating checkbox or shuf calls `rePlay (false)` - list rebuilt, first song
 loaded but paused. The fab icon flips play/pause via `onPlayState`.
 If no picks are saved at startup, every rating gets picked.
 
-**Filename format** (required): `group - year album song# - title - rating.mp3` (or `.wav`/`.flac`/`.ogg`)
+**Filename format** (required): ``group ` year album song# ` title ` rating.mp3`` (or `.wav`/`.flac`/`.ogg`)
 
 **Key in-memory state:**
 - `pick` — which dirs are selected (checkboxes)

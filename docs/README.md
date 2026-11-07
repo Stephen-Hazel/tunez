@@ -21,7 +21,7 @@ check the dirs you want to hear
 
 play/pause is the bottom right "action button whatev thingo"
 
-make sure to name your songs as:  group - year album song# - title.mp3
+make sure to name your songs as:  group ` year album song# ` title ` rating.mp3
 - the middle part is optional but
 - there must be - - in the filename or it'll sort wrong etc
 
