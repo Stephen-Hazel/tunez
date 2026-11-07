@@ -10,7 +10,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This App Is
 
-SHazTunez (tunez) is a personal Android music player for two users (Annie and Steve). It reads MP3s from a structured directory on the device, supports shuffle with skip-history tracking (so recently played songs aren't replayed), and lets users select which music directories are active.
+SHazTunez (tunez, app id `app.shaz.tunez`) is a personal Android music
+player for two users (Annie and Steve).  It plays mp3/flac/ogg/wav files
+from one folder the user picks (normally `Music/tunez`).  Each song's
+rating is the last field of its filename; checkboxes pick which ratings
+play, shuffle never repeats a song till every picked song has played,
+and it casts to Chromecast.
 
 ## Build Commands
 
@@ -21,7 +26,12 @@ SHazTunez (tunez) is a personal Android music player for two users (Annie and St
 ./gradlew connectedAndroidTest   # Run instrumented tests (requires device)
 ./gradlew lint                   # Lint analysis
 ./gradlew clean build            # Full clean build
+./gradlew bundleRelease          # Play upload .aab - see Releasing
 ```
+
+There's no system JDK: use the one gradle downloaded,
+`JAVA_HOME=~/.gradle/jdks/jetbrains_s_r_o_-21-amd64-linux.2`.
+adb is `~/Android/Sdk/platform-tools/adb`.
 
 ## Releasing
 
@@ -29,8 +39,9 @@ SHazTunez (tunez) is a personal Android music player for two users (Annie and St
   (password in `~/src/keys/tunez-upload.txt`), found thru
   `keystore.properties` in the project root - git ignored, never commit it.
   No file = release builds come out unsigned.
-- `./gradlew bundleRelease` -> `app/build/outputs/bundle/release/app-release.aab`
-  is what gets uploaded to Play (it carries the R8 mapping file too).
+- `./gradlew bundleRelease` ->
+  `app/build/outputs/bundle/release/app-release.aab` is what gets uploaded
+  to Play (it carries the R8 mapping file too).
 - Versions come from the build date: `versionName` = `yyyymmdd`, or
   `yyyymmdda`, `b`, ... when today already has a `v<yyyymmdd...>` git tag;
   `versionCode` = `yyyymmdd * 100 + n` (plain = 0, a = 1, ...).  After
@@ -41,10 +52,21 @@ SHazTunez (tunez) is a personal Android music player for two users (Annie and St
   `CastOptionsProvider` (named in the manifest's cast meta-data).
 - Release builds aren't debuggable (no `adb run-as`); `tunez_debug.log`
   in `Music/tunez` still works.
+- Store material (icon, feature graphic, screenshots, listing text, form
+  notes) lives in `docs/store/`; `art.py` / `launcher.py` there redraw the
+  icons.  The website n privacy policy are `https://shaz.app/tunez/` -
+  source in `~/web/pc/shaz.app/tunez/`, published by pushing that repo
+  then `sshp` + `cd public_html && git pull`.
 
 ## Architecture
 
-This is a **single-Activity, single-file app**. Nearly all logic lives in `app/src/main/java/app/shaz/tunez/MainActivity.kt`. There are no fragments, ViewModels, repositories, or services — everything is inline.
+| file | role |
+|---|---|
+| `MainActivity.kt` | the UI (rating checkboxes, song table, rate dialog, pick-folder panel + picker, play fab) plus the top level filename helpers (`splitfn`, `tickName`, `renameRating`, `SONG_EXTS`, `RATINGS` ...) |
+| `MusicService.kt` | foreground `mediaPlayback` service that owns all playback state: `MediaPlayer`, MediaSession + notification, playlist / done / picks, ratings, casting, bt / noisy-pause watchdog, audio focus, the `Dbg` log.  Talks to the UI thru `PlaybackCallback` |
+| `SongStore.kt` | the picked folder via the Storage Access Framework |
+| `LocalHttpServer.kt` | serves songs out of `SongStore` to the cast device on port 8765 (range requests ok) |
+| `CastOptionsProvider.kt` | cast sdk setup - kept from R8 by name |
 
 **Folder access:** no storage permissions - the app uses the Storage
 Access Framework. On first run (or if access is lost) `MainActivity`
@@ -70,13 +92,14 @@ appends the subdir path onto `x` with a leading `/` (`1976 High Voltage
 no ` - rating` = `new`) found at startup get renamed on disk to the
 `` ` `` style by `tickName`/`tickFile` (done.txt updated to match).
 Re-rating replaces the last field; unrated songs are written as
-`` ` new``. There's no fixed rating list: `RATINGS` is rebuilt by `MusicService.reRate ()` from the distinct
-suffixes on the files (plus `new` only if unrated songs exist), after the
-scan and after every rerate/delete, so a rating vanishes with its last
-song. New ratings come from renaming files outside the app. The top of
-the main screen shows one checkbox per rating, alphabetized, in a
-wrapping `ChipGroup`; the rate popup lists them the same way (`new`
-always last). The rate popup has a top-right close button.
+`` ` new``. There's no fixed rating list: `RATINGS` is rebuilt by
+`MusicService.reRate ()` from the distinct suffixes on the files (plus
+`new` only if unrated songs exist), after the scan and after every
+rerate/delete, so a rating vanishes with its last song. New ratings
+come from renaming files outside the app. The top of the main screen
+shows one checkbox per rating, alphabetized, in a wrapping `ChipGroup`;
+the rate popup lists them the same way (`new` always last). The rate
+popup has a top-right close button.
 
 **Play/pause:** opening the app starts playing (`rePlay ()` on a cold
 start, `resume ()` if the service already had a playlist). Toggling a
@@ -84,34 +107,64 @@ rating checkbox or shuf calls `rePlay (false)` - list rebuilt, first song
 loaded but paused. The fab icon flips play/pause via `onPlayState`.
 If no picks are saved at startup, every rating gets picked.
 
-**Filename format** (required): ``group ` year album song# ` title ` rating.mp3`` (or `.wav`/`.flac`/`.ogg`)
+**Filename format** (required):
+``group ` year album song# ` title ` rating.mp3`` (or `.wav`/`.flac`/`.ogg`)
 
-**Key in-memory state:**
-- `pick` — which dirs are selected (checkboxes)
-- `play` — current playlist (ordered or shuffled)
-- `done` — songs completed this rotation (cleared when all played)
-- `skip` — manually skipped songs
-- `shuf` — shuffle toggle
-
-All state persists to `SharedPreferences` under the key `"prf"`.
+**State n where it lives:**
+- `pick` (checked ratings), `shuf` - prefs `"prf"`, saved right away
+- `tree` - prefs, the picked folder's uri (its grant is persisted)
+- `done` - `done.txt` in the folder; songs played this round.  Cleared
+  only when the picks have songs n they've all been played
+- `skip.txt` - append-only log of skipped songs, nothing reads it
+- `play`, `ppos`, `song` - in memory only (the service's playlist)
 
 **Data flow:**
-1. `onCreate` → load prefs, scan `/Music/tunez/`, build playlist via `rePlay()`
-2. `rePlay()` → filter by selected dirs, shuffle or sort, populate `TableLayout` with clickable rows
-3. Row click or song completion → `next()` → advances playback, updates `done`/`skip`, highlights current row
-4. `onDestroy` → save all state, release `MediaPlayer`
+1. `MainActivity` starts n binds `MusicService`; no saved folder = the
+   pick-folder panel, then the picker, then the service gets restarted
+2. service `onCreate` -> `SongStore.saved` -> `scan` -> `tickFile` (old
+   style renames) -> `reRate` -> picks / done loaded -> `rePlay`
+3. the service drives the UI thru `PlaybackCallback`: `onPlaylistReady`,
+   `onSongChanged`, `onPlayState`, `onAlbumArtChanged`,
+   `onCastVolumeChanged`
+4. song end, skip, media keys -> `next ()`: marks done, drops the song
+   from `play`, loads the next one (or advances the cast queue).  A row
+   tap is `next (row)`: jumps there, logs a skip, drops nothing
 
-**Parsing/display helpers:**
-- `splitfn()` — parses a filename string into `FNTitle(dir, grp, x, ttl)`
-- `fmtfn()` — formats an `FNTitle` for display (bold title, directory label)
+**Casting:** `loadCastQueue` hands the receiver the current song + the
+next 2 as a real queue, so "Hey Google, skip" spoken to the speaker
+works.  The receiver advancing is the source of truth
+(`handleCastQueueAdvance` keeps `play`/`ppos`/`song`/done in sync).  A
+wifi lock is held while casting (needs `WAKE_LOCK`), and a dropped
+session gets retried by `tryReconnectCast`.
+
+**Parsing/display helpers** (top of `MainActivity.kt`, unit tested in
+`SongNameTest`):
+- `splitfn ()` - filename -> `FNTitle (dir = rating, grp, x, ttl)`
+- `fmtfn ()` - display row, title n rating bolded by position
+- `tickName ()` / `tickParts ()` - old style -> `` ` `` names / the fields
+- `renameRating ()`, `songExt ()`, `songMime ()`, `isSong ()`
 
 **Data classes:**
 ```kotlin
 data class FNList(val dir: String, var fn: MutableList<String>)
-data class FNTitle(val dir: String, val grp: String, val x: String, val ttl: String)
+data class FNTitle(val dir: String, val grp: String, val x: String,
+                   val ttl: String)
 ```
+
+## Debugging
+
+- `Music/tunez/tunez_debug.log` (the `Dbg` object, trimmed at 1MB) -
+  tags `TunezSkip` (playback / next), `TunezCast`, `HTTP`, `TunezRate`,
+  `TunezLocal`, `TunezFocus`, `TunezStore` (scan time), `TunezBT`, and
+  `TunezCrash` (uncaught exceptions, with stack)
+- handy adb: `input keyevent KEYCODE_MEDIA_NEXT` (/ `_PAUSE` / `_PLAY`),
+  `dumpsys media_session` (playing state + title), `dumpsys deviceidle
+  force-idle` (doze test), `screenrecord` (stops while the screen's off)
+- song names have backticks: single quote them in a shell
+- release builds can't `run-as`, but the log still works
 
 ## Known Incomplete Areas
 
-- **`lyr()`** is a stubbed lyrics popup — blocked pending foreground service implementation.
-- `MediaSession` integration is a known TODO (see `docs/do.txt`).
+- Play Store: dev account made, waiting on Google's identity check;
+  internal testing release next (see `docs/store/listing.md`)
+- local Apache (`/var/www/html/sh` symlink) gives 403 for `~/web` pages
