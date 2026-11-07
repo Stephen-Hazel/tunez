@@ -28,7 +28,7 @@ SHazTunez (tunez) is a personal Android music player for two users (Annie and St
 This is a **single-Activity, single-file app**. Nearly all logic lives in `app/src/main/java/app/shaz/tunez/MainActivity.kt`. There are no fragments, ViewModels, repositories, or services — everything is inline.
 
 **Music files on device** (`/Music/tunez/`): songs (`.mp3`, `.wav`,
-`.flac` - `SONG_EXTS`) sit in this directory or any (non-hidden)
+`.flac`, `.ogg` - `SONG_EXTS`) sit in this directory or any (non-hidden)
 subdirectory of it; songs are tracked as paths relative to it
 (`song.mp3`, `sub/song.flac`). Folders are just for organizing - each
 file's rating tag is suffixed on the filename, so re-rating a song is
@@ -55,7 +55,7 @@ rating checkbox or shuf calls `rePlay (false)` - list rebuilt, first song
 loaded but paused. The fab icon flips play/pause via `onPlayState`.
 If no picks are saved at startup, every rating gets picked.
 
-**Filename format** (required): `group - year album song# - title - rating.mp3` (or `.wav`/`.flac`)
+**Filename format** (required): `group - year album song# - title - rating.mp3` (or `.wav`/`.flac`/`.ogg`)
 
 **Key in-memory state:**
 - `pick` — which dirs are selected (checkboxes)

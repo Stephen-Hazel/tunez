@@ -65,7 +65,7 @@ fun subDir   (fn: String): String  { return fn.substringBeforeLast ("/", "") }
 
 
 // song file types we play
-val SONG_EXTS = listOf (".mp3", ".wav", ".flac")
+val SONG_EXTS = listOf (".mp3", ".wav", ".flac", ".ogg")
 
 fun songExt (fn: String): String
 // ".mp3" etc as it's actually spelled on the file (case kept)
@@ -84,6 +84,7 @@ fun songMime (fn: String): String
 {  return when (songExt (fn).lowercase ()) {
       ".flac" -> "audio/flac"
       ".wav"  -> "audio/wav"
+      ".ogg"  -> "audio/ogg"
       else    -> "audio/mpeg"
    }
 }

@@ -139,7 +139,7 @@ class MusicService: Service ()
    private var callback: PlaybackCallback? = null
 
    private var mplay: MediaPlayer? = null
-   var mp3 = mutableListOf<FNList> ()     // all our songs (wav,flac too)
+   var mp3 = mutableListOf<FNList> ()     // all our songs (wav,flac,ogg too)
        private set
    var path = ""
        private set
