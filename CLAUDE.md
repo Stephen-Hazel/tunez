@@ -23,6 +23,22 @@ SHazTunez (tunez) is a personal Android music player for two users (Annie and St
 ./gradlew clean build            # Full clean build
 ```
 
+## Releasing
+
+- Release builds are signed with the upload key `~/src/keys/tunez-upload.jks`
+  (password in `~/src/keys/tunez-upload.txt`), found thru
+  `keystore.properties` in the project root - git ignored, never commit it.
+  No file = release builds come out unsigned.
+- `./gradlew bundleRelease` -> `app/build/outputs/bundle/release/app-release.aab`
+  is what gets uploaded to Play (it carries the R8 mapping file too).
+- Every upload needs a higher `versionCode` in `app/build.gradle.kts`:
+  bump it by 1 each time (`versionName` 1.0, 1.1, ... for humans).
+- R8 + resource shrinking are on for release.  Anything found by name at
+  runtime needs a keep rule in `app/proguard-rules.pro` - e.g.
+  `CastOptionsProvider` (named in the manifest's cast meta-data).
+- Release builds aren't debuggable (no `adb run-as`); `tunez_debug.log`
+  in `Music/tunez` still works.
+
 ## Architecture
 
 This is a **single-Activity, single-file app**. Nearly all logic lives in `app/src/main/java/app/shaz/tunez/MainActivity.kt`. There are no fragments, ViewModels, repositories, or services — everything is inline.
@@ -94,6 +110,5 @@ data class FNTitle(val dir: String, val grp: String, val x: String, val ttl: Str
 
 ## Known Incomplete Areas
 
-- **ExoPlayer** is imported and initialized but never used; `MediaPlayer` is the actual playback engine.
 - **`lyr()`** is a stubbed lyrics popup — blocked pending foreground service implementation.
 - `MediaSession` integration is a known TODO (see `docs/do.txt`).

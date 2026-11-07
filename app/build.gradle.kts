@@ -41,7 +41,8 @@ android {
         release {
             if (keyProps.containsKey ("storeFile"))
                 signingConfig = signingConfigs.getByName ("release")
-            isMinifyEnabled = false
+            isMinifyEnabled   = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -65,11 +66,6 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
-    implementation(libs.androidx.constraintlayout)
-    implementation(libs.androidx.navigation.fragment.ktx)
-    implementation(libs.androidx.navigation.ui.ktx)
-    implementation(libs.androidx.recyclerview)
-    implementation(libs.androidx.media3.exoplayer)
     implementation(libs.androidx.media)
     implementation(libs.cast.framework)
     testImplementation(libs.junit)

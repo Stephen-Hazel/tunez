@@ -19,3 +19,6 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+# the cast sdk finds this by the class name in the manifest's
+# OPTIONS_PROVIDER_CLASS_NAME meta-data - R8 can't see that, so keep it
+-keep class app.shaz.tunez.CastOptionsProvider { *; }

@@ -173,6 +173,7 @@ class MusicService: Service ()
    private val focusGainCheckHandler = Handler (Looper.getMainLooper ())
 
    private lateinit var mediaSession: MediaSessionCompat
+   private var noFg = false        // android wouldn't let us start up
 
 // if we get disco'd from bluetooth shuuut uuupp
    private lateinit var btDisco: BTDisco
@@ -687,11 +688,22 @@ class MusicService: Service ()
          getSystemService (NotificationManager::class.java
                                                 ).createNotificationChannel (ch)
       }
-      startForeground (NOTIF_ID,
-         NotificationCompat.Builder (this, CHANNEL_ID)
-            .setSmallIcon (R.drawable.outline_music_cast_24)
-            .setContentTitle ("SHazTunez")
-            .build ())
+   // android 12+ won't let a service restarted in the background (say
+   // after a crash) go foreground - just quietly quit, the app starts us
+   // again properly when it's opened
+      try {
+         startForeground (NOTIF_ID,
+            NotificationCompat.Builder (this, CHANNEL_ID)
+               .setSmallIcon (R.drawable.outline_music_cast_24)
+               .setContentTitle ("SHazTunez")
+               .build ())
+      }
+      catch (e: IllegalStateException) {
+         Log.w ("TunezSkip", "startForeground refused, stopping", e)
+         noFg = true
+         stopSelf ()
+         return
+      }
 
       mplay = newMediaPlayer ()
    // our songs live in the Music/tunez folder the user picked for us (no
@@ -891,7 +903,8 @@ class MusicService: Service ()
    override fun onBind (intent: Intent): IBinder = binder
 
    override fun onStartCommand (intent: Intent?, flags: Int, startId: Int): Int
-   {  val key = intent?.let { IntentCompat.getParcelableExtra (
+   {  if (noFg)  return START_NOT_STICKY
+     val key = intent?.let { IntentCompat.getParcelableExtra (
                   it, Intent.EXTRA_KEY_EVENT, KeyEvent::class.java) }
       Dbg.log ("TunezSkip",
                "onStartCommand action=${intent?.action} key=${key?.keyCode}")
@@ -907,6 +920,7 @@ class MusicService: Service ()
    override fun onDestroy ()
    // shut it all down
    {  super.onDestroy ()
+      if (noFg)  return               // never got set up
       Dbg.log ("TunezSkip", "onDestroy: service destroyed")
       unregisterReceiver (btDisco)
     val am = getSystemService (Context.AUDIO_SERVICE) as AudioManager
