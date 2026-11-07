@@ -74,7 +74,10 @@ class LocalHttpServer (private val basePath: String) {
          Dbg.log ("HTTP", "request $uri")
         val file    = File ("$basePath/$uri")
         val out     = sock.getOutputStream ()
-         if (! file.exists () || ! file.isFile) {
+      // songs can sit in subdirs now - but never serve outside basePath
+        val inBase  = file.canonicalPath.startsWith (
+                         File (basePath).canonicalPath + File.separator)
+         if (! inBase || ! file.exists () || ! file.isFile) {
             Log.w ("HTTP", "404 $uri (looked in ${file.path})")
             Dbg.log ("HTTP", "404 $uri (looked in ${file.path})")
             out.write ("HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n"

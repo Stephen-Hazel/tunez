@@ -59,21 +59,28 @@ fun substr (s: String, b: Int, l: Int): String
 }
 
 
+// songs are paths relative to /Music/tunez - "song.mp3" or "sub/song.mp3"
+fun baseName (fn: String): String  { return fn.substringAfterLast ("/") }
+fun subDir   (fn: String): String  { return fn.substringBeforeLast ("/", "") }
+
+
 fun rawRating (fn: String): String
 // whatever's after the last " - " (sans .mp3), rating or not
-{  return fn.removeSuffix (".mp3").substringAfterLast (" - ").trim ()
+{  return baseName (fn).removeSuffix (".mp3").substringAfterLast (" - ")
+                                                                 .trim ()
 }
 
 
 fun isRated (fn: String): Boolean
 // the rating always hangs off a " - " (spaces n all) - no " - " = unrated
-{  return fn.removeSuffix (".mp3").contains (" - ")
+{  return baseName (fn).removeSuffix (".mp3").contains (" - ")
 }
 
 
 fun splitfn (fn: String): FNTitle
 // unrated files keep their last segment as title n go in UNRATED bucket
-{ var s = fn
+// any subdir(s) get tacked onto the middle bit (x)
+{ var s = baseName (fn)
    s = substr (s, 0, s.length-4)
   var d = UNRATED
    if (isRated (fn)) {
@@ -97,6 +104,8 @@ fun splitfn (fn: String): FNTitle
       t = s.trim ()
       x = ""
    }
+  val sd = subDir (fn).replace ("_", " ")
+   if (sd.isNotEmpty ())  x = "$x $sd".trim ()
    return FNTitle (d, g, x, t)
 }
 
@@ -118,12 +127,14 @@ fun fmtfn (fn: String): SpannableString
 fun renameRating (fn: String, rating: String): String
 // swap the rating suffix on a filename, keeping everything before it
 // (unrated files just get the rating tacked on the end)
-{  val base = fn.removeSuffix (".mp3")
-   if (! isRated (fn))  return "${base.trimEnd ()} - $rating.mp3"
+// the file stays in whatever subdir it's in
+{  val dir  = subDir (fn).let { if (it.isEmpty ())  ""  else  "$it/" }
+  val base = baseName (fn).removeSuffix (".mp3")
+   if (! isRated (fn))  return "$dir${base.trimEnd ()} - $rating.mp3"
   val idx  = base.lastIndexOf (" - ")
    if (idx == -1)  return fn
   val prefix = base.substring (0, idx).trimEnd ()
-   return "$prefix - $rating.mp3"
+   return "$dir$prefix - $rating.mp3"
 }
 
 

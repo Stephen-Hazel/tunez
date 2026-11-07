@@ -715,10 +715,14 @@ class MusicService: Service ()
          File ("${File(path).parent}/done.txt").readLines ().toMutableList ()
       }
       catch (e: Exception) { mutableListOf () }
-   // ok, list off every mp3 n bucket by rating suffix
-     val mus = File (path).listFiles () ?: emptyArray ()
-     val fns = mus.filter { it.isFile && it.getName ().endsWith (".mp3") }
-                  .map { it.getName () }.sorted ()
+   // ok, list off every mp3 (subdirs too, as relative paths, skipping
+   // hidden dirs) n bucket by rating suffix
+     val root = File (path)
+     val fns  = root.walk ()
+                   .onEnter { it == root || ! it.name.startsWith (".") }
+                   .filter  { it.isFile && it.name.endsWith (".mp3") }
+                   .map     { it.relativeTo (root).path }
+                   .toList  ().sorted ()
       fns.groupBy { splitfn (it).dir }.toSortedMap ().forEach { (d, ls) ->
          mp3.add (FNList (d, ls.toMutableList ()))
       }
@@ -1013,7 +1017,11 @@ class MusicService: Service ()
                   ?.toMutableList ()
                   ?.takeIf { it.isNotEmpty () }
             }.toMutableList ()
-         if (buckets.isEmpty ()) {
+      // only start a new rotation if the picks actually HAVE songs n
+      // they're all done - picks with no songs at all mustn't wipe done
+        val anySongs = pick.any { p ->
+               mp3.find { it.dir == p }?.fn?.isNotEmpty () == true }
+         if (buckets.isEmpty () && anySongs) {
             done.clear ()
             saveDone ()
             pick.forEach { p ->
@@ -1202,6 +1210,8 @@ class MusicService: Service ()
    {  mp3.removeAll { it.fn.isEmpty () }
       RATINGS.clear ()
       RATINGS.addAll (mp3.map { it.dir })
+   // n forget picks of ratings that don't exist anymore
+      if (pick.retainAll { RATINGS.contains (it) })  savePrefs ()
    }
 
 

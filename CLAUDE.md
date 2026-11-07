@@ -27,10 +27,13 @@ SHazTunez (tunez) is a personal Android music player for two users (Annie and St
 
 This is a **single-Activity, single-file app**. Nearly all logic lives in `app/src/main/java/app/shaz/tunez/MainActivity.kt`. There are no fragments, ViewModels, repositories, or services — everything is inline.
 
-**Music files on device** (`/Music/tunez/`): all mp3s sit flat directly in
-this one directory — no subdirectories. Each file's rating tag is
-suffixed on the filename instead of being a folder name, so re-rating a
-song is just a rename. A file is rated when its name (sans `.mp3`)
+**Music files on device** (`/Music/tunez/`): mp3s sit in this directory
+or any (non-hidden) subdirectory of it; songs are tracked as paths
+relative to it (`song.mp3`, `sub/song.mp3`). Folders are just for
+organizing - each file's rating tag is suffixed on the filename, so
+re-rating a song is just a rename in place (never moves folders). The
+filename helpers only look at the part after the last `/`; `splitfn`
+appends the subdir path onto the middle (`x`) field for display. A file is rated when its name (sans `.mp3`)
 contains ` - ` (space-dash-space, `isRated`); the rating is whatever
 follows the last ` - `. The other fields may be joined by bare `-` or by
 ` - `, so a rating is never stripped - rerating to `new` writes ` - new`.
