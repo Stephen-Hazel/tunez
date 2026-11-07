@@ -1052,6 +1052,9 @@ class MusicService: Service ()
       }
       ppos = 0
       song = play [ppos]
+   // ui gets the list BEFORE we try loadin song 1 - if that fails next ()
+   // drops its row, n the row had better be there by then
+      callback?.onPlaylistReady (play.toList ())
       loadAlbumArt ()
       if (isCasting ())  loadCastQueue (start)
       else {
@@ -1070,7 +1073,6 @@ class MusicService: Service ()
       }
       updateMediaSession ()
       postNotification ()
-      callback?.onPlaylistReady (play.toList ())
    }
 
 

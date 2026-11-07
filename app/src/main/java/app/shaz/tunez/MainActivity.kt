@@ -302,7 +302,7 @@ class MainActivity: AppCompatActivity (), PlaybackCallback
 
    override fun onSongChanged (removedPos: Int, newPpos: Int)
    {  runOnUiThread {
-         if (removedPos >= 0) {
+         if (removedPos >= 0 && removedPos < b.loTbl.childCount) {
             selRow = null
             b.loTbl.removeViews (removedPos, 1)
             for (i in removedPos until b.loTbl.childCount)
