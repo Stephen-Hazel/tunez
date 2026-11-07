@@ -50,7 +50,8 @@ Music & Audio
 ## Contact
 
 Email: sh@shaz.app
-Privacy policy: (url where docs/store/privacy.html gets posted)
+Privacy policy: https://shaz.app/tunez/privacy.html
+Website: https://shaz.app/tunez/
 
 ## Graphics (this folder)
 
