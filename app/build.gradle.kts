@@ -1,3 +1,5 @@
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import java.util.Properties
 
 plugins {
@@ -12,6 +14,18 @@ val keyProps = Properties ().apply {
     if (f.exists ())  f.inputStream ().use { load (it) }
 }
 
+// version = today as yyyymmdd - or yyyymmdda, b, ... when today's already
+// got a v<that> git tag.  tag every play upload (git tag v20261107) or the
+// next build reuses its version n play rejects it
+val relDay  = LocalDate.now ().format (DateTimeFormatter.BASIC_ISO_DATE)
+val relTags = try {
+    providers.exec { commandLine ("git", "tag", "--list", "v$relDay*") }
+        .standardOutput.asText.get ().lines ().map { it.trim () }.toSet ()
+} catch (e: Exception) { emptySet () }
+val relSuf  = { n: Int -> if (n == 0)  ""  else  ('a' + n - 1).toString () }
+val relN    = (0..26).first { "v$relDay${relSuf (it)}" !in relTags }
+val relName = relDay + relSuf (relN)
+
 android {
     namespace = "app.shaz.tunez"
     compileSdk = 36
@@ -20,8 +34,8 @@ android {
         applicationId = "app.shaz.tunez"
         minSdk = 24
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = relDay.toInt () * 100 + relN     // 2026110700, 01 ..
+        versionName = relName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

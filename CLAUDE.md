@@ -31,8 +31,11 @@ SHazTunez (tunez) is a personal Android music player for two users (Annie and St
   No file = release builds come out unsigned.
 - `./gradlew bundleRelease` -> `app/build/outputs/bundle/release/app-release.aab`
   is what gets uploaded to Play (it carries the R8 mapping file too).
-- Every upload needs a higher `versionCode` in `app/build.gradle.kts`:
-  bump it by 1 each time (`versionName` 1.0, 1.1, ... for humans).
+- Versions come from the build date: `versionName` = `yyyymmdd`, or
+  `yyyymmdda`, `b`, ... when today already has a `v<yyyymmdd...>` git tag;
+  `versionCode` = `yyyymmdd * 100 + n` (plain = 0, a = 1, ...).  After
+  every Play upload tag the release commit (`git tag v20261107` and push
+  the tag) or the next build reuses that version and Play rejects it.
 - R8 + resource shrinking are on for release.  Anything found by name at
   runtime needs a keep rule in `app/proguard-rules.pro` - e.g.
   `CastOptionsProvider` (named in the manifest's cast meta-data).
