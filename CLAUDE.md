@@ -165,6 +165,10 @@ data class FNTitle(val dir: String, val grp: String, val x: String,
 
 ## Known Incomplete Areas
 
-- Play Store: dev account made, waiting on Google's identity check;
-  internal testing release next (see `docs/store/listing.md`)
+- Play Store: internal testing live (20261109a, tester list `tunez` -
+  just Steve so far; Annie's Play Google account still to add).  Internal
+  test apps aren't searchable - update via Manage apps or the opt-in link
+  (Testers tab).  20261109a also went to closed testing (Alpha, US only),
+  in Google review with the store listing.  Production needs 12 testers
+  opted in for 14 days - only if we want it public
 - local Apache (`/var/www/html/sh` symlink) gives 403 for `~/web` pages
