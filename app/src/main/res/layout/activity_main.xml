@@ -65,6 +65,17 @@
 
         </LinearLayout>
 
+        <!-- no songs at all?  say where to put some -->
+        <TextView
+            android:id="@+id/tv_empty"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="48dp"
+            android:gravity="center"
+            android:padding="32dp"
+            android:textSize="22sp"
+            android:visibility="gone" />
+
         <ScrollView
             android:layout_width="match_parent"
             android:layout_height="0dp"

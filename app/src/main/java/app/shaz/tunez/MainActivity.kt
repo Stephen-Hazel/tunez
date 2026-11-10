@@ -196,6 +196,7 @@ class MainActivity: AppCompatActivity (), PlaybackCallback
       {  svc = (binder as MusicService.MusicBinder).getService ()
          svc!!.setCallback (this@MainActivity)
          initUi ()
+         emptyNote ()
          onPlayState (svc!!.isPlaying ())
          if (svc!!.play.isEmpty () && svc!!.pick.isNotEmpty ())
             svc!!.rePlay ()
@@ -212,6 +213,7 @@ class MainActivity: AppCompatActivity (), PlaybackCallback
    override fun onPlaylistReady (play: List<String>)
    {  val ppos = svc?.ppos ?: 0
       runOnUiThread {
+         emptyNote ()
          selRow = null
          b.tvCount.text = "${play.size}"
          b.loTbl.removeAllViews ()
@@ -237,6 +239,35 @@ class MainActivity: AppCompatActivity (), PlaybackCallback
             b.loTbl.addView (tr)
          }
       }
+   }
+
+
+   private fun emptyNote ()
+   // no songs in the folder at all?  say where to put some
+   {  val s = svc ?: return
+     val none = s.store != null && s.mp3.isEmpty ()
+      b.tvEmpty.visibility = if (none)  View.VISIBLE  else  View.GONE
+      if (! none)  return
+      b.tvCount.text = ""
+   // word joiners after the /s so Music/tunez doesn't wrap at the /
+     val dir = s.store?.where?.ifEmpty { null }?.replace ("/", "/⁠")
+               ?: "the folder you picked"
+     val pre = "No songs yet.\n\nPut some .mp3 files (or .flac .ogg .wav)" +
+               " into "
+     val txt = SpannableString ("$pre$dir, then come back here.")
+      txt.setSpan (StyleSpan (Typeface.BOLD), pre.length,
+                   pre.length + dir.length,
+                   Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+      b.tvEmpty.text = txt
+   }
+
+
+   override fun onResume ()
+   // folder had no songs?  they may've just copied some in - rescan.
+   // (svc is null while a restart's already underway, eg after the picker)
+   {  super.onResume ()
+     val s = svc ?: return
+      if (s.store != null && s.mp3.isEmpty ())  restartService ()
    }
 
 
@@ -302,6 +333,7 @@ class MainActivity: AppCompatActivity (), PlaybackCallback
 
    override fun onSongChanged (removedPos: Int, newPpos: Int)
    {  runOnUiThread {
+         emptyNote ()                  // deleted the last song?
          if (removedPos >= 0 && removedPos < b.loTbl.childCount) {
             selRow = null
             b.loTbl.removeViews (removedPos, 1)

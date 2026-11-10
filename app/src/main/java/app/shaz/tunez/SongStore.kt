@@ -18,6 +18,9 @@ import java.util.concurrent.ConcurrentHashMap
 class SongStore (ctx: Context, val tree: Uri)
 {  private val cr     = ctx.contentResolver
    private val rootId = DocumentsContract.getTreeDocumentId (tree)
+// the folder's path on its drive - "primary:Music/tunez" -> Music/tunez
+// (empty if they picked a whole drive)
+   val where = rootId.substringAfter (':')
 // relative path -> document uri, files only.  the http server reads it
 // from its own threads so it's a concurrent map
    private val docs   = ConcurrentHashMap<String, Uri> ()
