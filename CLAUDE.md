@@ -168,7 +168,9 @@ data class FNTitle(val dir: String, val grp: String, val x: String,
 - Play Store: internal testing live (20261109a, tester list `tunez` -
   just Steve so far; Annie's Play Google account still to add).  Internal
   test apps aren't searchable - update via Manage apps or the opt-in link
-  (Testers tab).  20261109a also went to closed testing (Alpha, US only),
-  in Google review with the store listing.  Production needs 12 testers
-  opted in for 14 days - only if we want it public
+  (Testers tab).  20261109a is also on closed testing (Alpha, US only,
+  same `tunez` list) - Google approved it n the store listing 2026-11-09.
+  Join link: `https://play.google.com/apps/testing/app.shaz.tunez`.
+  Production needs 12 testers opted in for 14 days - only if we want it
+  public
 - local Apache (`/var/www/html/sh` symlink) gives 403 for `~/web` pages
