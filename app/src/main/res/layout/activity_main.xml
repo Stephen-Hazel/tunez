@@ -129,7 +129,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
             android:gravity="center"
-            android:text="Next screen: go to Music › tunez, then tap\nUse this folder and then Allow"
+            android:text="Next screen: go to Music › tunez, then tap\nUse this folder and then Allow\n\nNo tunez folder?  Use New folder in Music"
             android:textSize="20sp" />
 
         <com.google.android.material.button.MaterialButton

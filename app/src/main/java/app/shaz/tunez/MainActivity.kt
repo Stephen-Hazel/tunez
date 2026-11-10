@@ -491,7 +491,10 @@ class MainActivity: AppCompatActivity (), PlaybackCallback
       startPlay = (state == null)    // not on a rotate n such
       b = ActivityMainBinding.inflate (layoutInflater)
       setContentView (b.root)
-      b.btnFolder.setOnClickListener { pickTree.launch (SongStore.HINT) }
+      b.btnFolder.setOnClickListener {
+         SongStore.make ()
+         pickTree.launch (SongStore.HINT)
+      }
       checkPerms ()
 
       try { CastContext.getSharedInstance (this) } catch (e: Exception) { }

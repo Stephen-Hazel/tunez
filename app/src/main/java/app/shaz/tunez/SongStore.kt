@@ -7,9 +7,12 @@ package app.shaz.tunez
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
+import android.os.Environment
 import android.os.ParcelFileDescriptor
 import android.provider.DocumentsContract
 import android.provider.DocumentsContract.Document
+import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 
 class SongStore (ctx: Context, val tree: Uri)
@@ -34,6 +37,20 @@ class SongStore (ctx: Context, val tree: Uri)
         val ok = ctx.contentResolver.persistedUriPermissions.any {
                     it.uri == u && it.isReadPermission && it.isWritePermission }
          return if (ok)  SongStore (ctx, u)  else  null
+      }
+
+      fun make ()
+      // make Music/tunez if it's not there so the picker can land on it.
+      // android 11+ lets us mkdir in Music without storage permission -
+      // older ones don't, so they make it in the picker (New folder)
+      {  if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R)  return
+        val d = File (Environment.getExternalStoragePublicDirectory (
+                         Environment.DIRECTORY_MUSIC), "tunez")
+         try {
+            if (d.isDirectory)  return
+            Dbg.log ("TunezStore", "make $d: ${d.mkdirs ()}")
+         }
+         catch (e: Exception) { Dbg.log ("TunezStore", "make $d: $e") }
       }
 
       fun keep (ctx: Context, u: Uri)
