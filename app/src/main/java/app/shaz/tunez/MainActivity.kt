@@ -19,6 +19,8 @@ import android.os.IBinder
 import android.text.Spannable
 import android.text.SpannableString
 import android.text.style.StyleSpan
+import android.view.Gravity
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.CheckBox
@@ -27,11 +29,13 @@ import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.google.android.gms.cast.framework.CastButtonFactory
 import com.google.android.gms.cast.framework.CastContext
 import com.google.android.material.color.MaterialColors
+import com.google.android.material.shape.ShapeAppearanceModel
 import com.google.android.material.snackbar.Snackbar
 import app.shaz.tunez.databinding.ActivityMainBinding
 import app.shaz.tunez.databinding.DialogRateBinding
@@ -321,12 +325,8 @@ class MainActivity: AppCompatActivity (), PlaybackCallback
 
    override fun onAlbumArtChanged (art: Bitmap?)
    {  runOnUiThread {
-         if (art != null) {
-            b.ivArt.setImageBitmap (art)
-            b.ivArt.visibility = View.VISIBLE
-         } else {
-            b.ivArt.visibility = View.GONE
-         }
+         b.ivArt.setImageBitmap (art)
+         artShow ()
       }
    }
 
@@ -372,6 +372,54 @@ class MainActivity: AppCompatActivity (), PlaybackCallback
       }
       catch (e: Exception) { }
       b.fab.setOnClickListener { onPlayState (s.togglePlayPause ()) }
+   // art's a little button like the fab - held down it's big
+      artBig (false)
+      b.ivArt.setOnTouchListener { v, ev ->
+         when (ev.actionMasked) {
+            MotionEvent.ACTION_DOWN   -> artBig (true)
+            MotionEvent.ACTION_UP     -> { artBig (false);  v.performClick () }
+            MotionEvent.ACTION_CANCEL -> artBig (false)
+         }
+         true
+      }
+   }
+
+
+   private fun artShow ()
+   // art's there if the song has some n the folder panel's not up
+   {  b.ivArt.visibility = if (b.ivArt.drawable != null &&
+                               b.loFolder.visibility != View.VISIBLE)
+                              View.VISIBLE
+                           else
+                              View.GONE
+   }
+
+
+   private fun artBig (on: Boolean)
+   // big = a centered square, as big as fits (full width in portrait,
+   // full height in landscape); small = same shape n size as the fab,
+   // bottom left - both show the middle square of the pic
+   {  val lp = b.ivArt.layoutParams as CoordinatorLayout.LayoutParams
+      if (on) {
+        val pw = b.root.width  - b.root.paddingLeft - b.root.paddingRight
+        val ph = b.root.height - b.root.paddingTop  - b.root.paddingBottom
+         lp.width   = minOf (pw, ph)
+         lp.height  = lp.width
+         lp.gravity = Gravity.CENTER
+         lp.marginStart  = 0
+         lp.bottomMargin = 0
+         b.ivArt.shapeAppearanceModel = ShapeAppearanceModel ()
+      }
+      else {
+         lp.width   = dp (112)
+         lp.height  = dp (112)
+         lp.gravity = Gravity.BOTTOM or Gravity.START
+         lp.marginStart  = resources.getDimensionPixelSize (
+                                                          R.dimen.fab_margin)
+         lp.bottomMargin = dp (16)
+         b.ivArt.shapeAppearanceModel = b.fab.shapeAppearanceModel
+      }
+      b.ivArt.layoutParams = lp
    }
 
 
@@ -482,6 +530,7 @@ class MainActivity: AppCompatActivity (), PlaybackCallback
    private fun folderPanel (on: Boolean)
    {  b.loFolder.visibility = if (on)  View.VISIBLE  else  View.GONE
       b.fab.visibility      = if (on)  View.GONE     else  View.VISIBLE
+      artShow ()
    }
 
 

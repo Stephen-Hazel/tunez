@@ -76,11 +76,14 @@
             android:textSize="22sp"
             android:visibility="gone" />
 
+        <!-- bottom padding so the last rows scroll clear of art n fab -->
         <ScrollView
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
-            android:layout_marginStart="16dp">
+            android:layout_marginStart="16dp"
+            android:clipToPadding="false"
+            android:paddingBottom="128dp">
 
             <HorizontalScrollView
                 android:layout_width="match_parent"
@@ -103,14 +106,6 @@
 
             </HorizontalScrollView>
         </ScrollView>
-
-        <ImageView
-            android:id="@+id/iv_art"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:scaleType="centerCrop"
-            android:visibility="gone" />
 
     </LinearLayout>
 
@@ -165,5 +160,18 @@
         app:fabCustomSize="112dp"
         app:maxImageSize="48dp"
         android:src="@drawable/ic_play_24" />
+
+    <!-- album art: a button like the fab, bottom left - held down it
+         grows to fill the middle of the screen (covering the fab) -->
+    <com.google.android.material.imageview.ShapeableImageView
+        android:id="@+id/iv_art"
+        android:layout_width="112dp"
+        android:layout_height="112dp"
+        android:layout_gravity="bottom|start"
+        android:layout_marginStart="@dimen/fab_margin"
+        android:layout_marginBottom="16dp"
+        android:elevation="12dp"
+        android:scaleType="centerCrop"
+        android:visibility="gone" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
