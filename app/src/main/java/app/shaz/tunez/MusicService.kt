@@ -1091,7 +1091,7 @@ class MusicService: Service ()
 
 
    private fun tickFile (fn: String): String
-   // old style name?  rename it on disk to the ` style (n fix done to
+   // no ` in the name?  rename it on disk to "name ` new" (n fix done to
    // match).  if that can't happen we just keep the old name
    {  val tn = tickName (fn)
       if (tn == fn)  return fn

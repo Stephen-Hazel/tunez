@@ -96,34 +96,17 @@ fun songMime (fn: String): String
 const val SEP = "`"
 
 fun tickName (fn: String): String
-// old style "group-middle-title - rating.ext" (or no " - rating" at all)
-// -> the ` style, staying in its subdir.  ` style names come back as is
+// no ` in the name?  the whole name's the title n it's unrated:
+// "A-ha-Take_On_Me.mp3" -> "A-ha-Take_On_Me ` new.mp3", staying in its
+// subdir.  - is just a character now.  ` style names come back as is
 {  if (baseName (fn).contains (SEP))  return fn
   val dir = subDir (fn).let { if (it.isEmpty ())  ""  else  "$it/" }
-  var s   = stripExt (fn)
-  var r   = UNRATED
-   if (s.contains (" - ")) {
-      r = s.substringAfterLast (" - ").trim ().ifEmpty { UNRATED }
-      s = s.substringBeforeLast (" - ")
-   }
-  val f = s.indexOf     ("-")
-  val l = s.lastIndexOf ("-")
-  val g: String
-  val x: String
-  val t: String
-   if (f == -1)  { g = "";  x = "";  t = s.trim () }
-   else {
-      g = substr (s, 0, f).trim ()
-      x = if (f == l)  ""  else  substr (s, f+1, l-f-1).trim ()
-      t = s.substring (l+1).trim ()
-   }
-  val parts = listOf (g, x).filter { it.isNotEmpty () } + listOf (t, r)
-   return dir + parts.joinToString (" $SEP ") + songExt (fn)
+   return "$dir${stripExt (fn).trim ()} $SEP $UNRATED${songExt (fn)}"
 }
 
 
 fun tickParts (fn: String): List<String>
-// the ` fields, trimmed (old style names get converted first)
+// the ` fields, trimmed (names without a ` get converted first)
 {  return stripExt (tickName (fn)).split (SEP).map { it.trim () }
 }
 
@@ -165,8 +148,8 @@ fun fmtfn (fn: String): SpannableString
 
 
 fun renameRating (fn: String, rating: String): String
-// swap the rating (last field), keeping everything before it - old style
-// names get converted along the way.  stays in whatever subdir it's in
+// swap the rating (last field), keeping everything before it - names
+// without a ` get converted along the way.  stays in whatever subdir it's in
 {  val tn  = tickName (fn)
   val dir = subDir (tn).let { if (it.isEmpty ())  ""  else  "$it/" }
   val pre = stripExt (tn).substringBeforeLast (SEP, "").trimEnd ()

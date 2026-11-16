@@ -4,15 +4,17 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class SongNameTest {
-   @Test fun tickNameConvertsOldStyle ()
-   {  assertEquals ("AC_DC ` 1976_High_Voltage ` Live_Wire ` aSt.mp3",
-         tickName ("AC_DC-1976_High_Voltage-Live_Wire - aSt.mp3"))
-      assertEquals ("David_Bowie ` Changes ` aAn.mp3",
+   @Test fun tickNameMakesUntickedNew ()
+   {  assertEquals ("AC-DC-Back_in_Black ` new.mp3",
+         tickName ("AC-DC-Back_in_Black.mp3"))
+      assertEquals ("David_Bowie-Changes - aAn ` new.mp3",
          tickName ("David_Bowie-Changes - aAn.mp3"))
-      assertEquals ("Live/Band ` Song ` new.flac",
+      assertEquals ("Live/Band-Song ` new.flac",
          tickName ("Live/Band-Song.flac"))
       assertEquals ("Song ` new.ogg", tickName ("Song.ogg"))
       assertEquals ("x ` y ` b.mp3", tickName ("x ` y ` b.mp3"))
+      assertEquals ("A-ha ` Take-On-Me ` new.mp3",
+         tickName ("A-ha ` Take-On-Me ` new.mp3"))
    }
 
    @Test fun splitfnTrimsFields ()
@@ -28,7 +30,9 @@ class SongNameTest {
    @Test fun renameRatingSwapsLastField ()
    {  assertEquals ("Live/Band ` Mid ` Song ` b.flac",
          renameRating ("Live/Band ` Mid ` Song ` a.flac", "b"))
-      assertEquals ("Band ` Song ` sing.mp3",
-         renameRating ("Band-Song - a.mp3", "sing"))
+      assertEquals ("Band-Song ` sing.mp3",
+         renameRating ("Band-Song.mp3", "sing"))
+      assertEquals ("A-ha ` Take-On-Me ` a.mp3",
+         renameRating ("A-ha ` Take-On-Me ` new.mp3", "a"))
    }
 }

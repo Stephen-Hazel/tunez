@@ -88,9 +88,10 @@ split on `` ` `` (`SEP`) and trimmed: the last is always the rating, the
 one before it the title, the first the group, anything between is the
 middle (`x`) - 3 fields = no middle. `_` shows as a space. `splitfn`
 appends the subdir path onto `x` with a leading `/` (`1976 High Voltage
-/Live/Encores`). Old style names (`group-middle-title - rating.mp3`, or
-no ` - rating` = `new`) found at startup get renamed on disk to the
-`` ` `` style by `tickName`/`tickFile` (done.txt updated to match).
+/Live/Encores`). `-` is just a character - it never splits anything.
+Names with no `` ` `` found at startup are taken as all title, unrated:
+`tickName`/`tickFile` rename them on disk to `` name ` new.mp3``
+(done.txt updated to match).
 Re-rating replaces the last field; unrated songs are written as
 `` ` new``. There's no fixed rating list: `RATINGS` is rebuilt by
 `MusicService.reRate ()` from the distinct suffixes on the files (plus
@@ -141,7 +142,8 @@ session gets retried by `tryReconnectCast`.
 `SongNameTest`):
 - `splitfn ()` - filename -> `FNTitle (dir = rating, grp, x, ttl)`
 - `fmtfn ()` - display row, title n rating bolded by position
-- `tickName ()` / `tickParts ()` - old style -> `` ` `` names / the fields
+- `tickName ()` / `tickParts ()` - no `` ` `` -> `` name ` new`` / the
+  fields
 - `renameRating ()`, `songExt ()`, `songMime ()`, `isSong ()`
 
 **Data classes:**
